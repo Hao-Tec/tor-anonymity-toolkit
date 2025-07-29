@@ -185,7 +185,7 @@ Pull requests and issue reports are welcome!
 
 ## 📄 License
 
-MIT License © 2025 [Hao-Tec](https://github.com/Hao-Tec)
+![License](https://img.shields.io/badge/License-MIT-blue.svg) MIT License © 2025 [Hao-Tec](https://github.com/Hao-Tec)
 
 ---
 
