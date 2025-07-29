@@ -2,7 +2,9 @@
 
 A simple, powerful, and user-friendly Bash toolkit to help you manage **Tor identity rotation**, **traffic monitoring**, and **service control** — all from your terminal.
 
-![Tor Logo](https://th.bing.com/th/id/OIP.TlKLzmlUDOQQQyei_8UCfgHaDt?w=318&h=175&c=7&r=0&o=7&pid=1.7&rm=3)
+<p align="center">
+  <img src="https://th.bing.com/th/id/OIP.TlKLzmlUDOQQQyei_8UCfgHaDt?w=318&h=175&c=7&r=0&o=7&pid=1.7&rm=3" alt="Tor Banner" style="width:100%; max-width:100px; height:140px;">
+</p>
 
 ---
 
