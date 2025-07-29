@@ -1,100 +1,192 @@
 # 🔐 Tor Anonymity Toolkit
 
-A powerful Bash-based toolkit that lets you easily control and monitor your Tor anonymity with systemd integration, IP rotation, live dashboards, and optional desktop notifications.
+A simple, powerful, and user-friendly Bash toolkit to help you manage **Tor identity rotation**, **traffic monitoring**, and **service control** — all from your terminal.
 
-![screenshot](docs/demo.png) <!-- optional, if you'll add screenshots -->
-
----
-
-## 🚀 Features
-
-- ✅ **Toggle Tor & NEWNYM**: One-click start/stop for Tor and timed identity changes.
-- 🕒 **Automated IP Rotation**: Sends `NEWNYM` signal every 10 minutes using `systemd` timers.
-- 📡 **Traffic Check**: Verifies if your traffic is routed through Tor with multiple IP checkers.
-- 🔁 **Live IP Monitor**: Monitor Tor IP changes in real-time.
-- 🧠 **Interactive Menu**: User-friendly TUI (Text UI) for all controls.
-- 🔔 **Desktop Notifications**: Optional notify-send popups on IP change or failure.
-- 🎨 **Theme Support**: Light/dark terminal color themes.
-- 🔧 **Customizable Config**: Easily override defaults via `~/.anonymity.conf`.
+![Tor Logo](https://upload.wikimedia.org/wikipedia/commons/2/2a/Tor_project_logo_hq.png)
 
 ---
 
-## 🛠 Installation
+## 📦 Installation
 
-### 1. Clone the repo
+### 1. Clone this repository
 
 ```bash
 git clone https://github.com/Hao-Tec/tor-anonymity-toolkit.git
 cd tor-anonymity-toolkit
-2. Make the script executable
-bash
-Copy code
+```
+
+### 2. Make the script executable
+
+```bash
 chmod +x anonymity.sh
-3. (Optional) Run the setup script
-bash
-Copy code
+```
+
+### 3. Run the setup script (auto-creates timer/service)
+
+```bash
 ./anonymity.sh setup
-This creates systemd user timer/service files for automatic IP rotation every 10 minutes.
-
-🧪 Usage
-🔘 Basic Commands
-bash
-Copy code
-./anonymity.sh toggle        # Toggle both Tor and NEWNYM timer
-./anonymity.sh newnym        # Send NEWNYM signal
-./anonymity.sh check         # Check if traffic is via Tor
-./anonymity.sh status        # Show status of services
-./anonymity.sh monitor       # Run live ephemeral IP monitor
-./anonymity.sh dashboard     # Show recent IP logs and statuses
-📲 Interactive Mode
-bash
-Copy code
-./anonymity.sh menu
-This launches the full control panel with all options.
-
-⚙ Configuration
-When run for the first time, a config file is auto-created at:
-
-bash
-Copy code
-~/.anonymity.conf
-Edit this file to adjust:
-
-bash
-Copy code
-AUTH_PASSWORD="ACILAB"    # Control port password
-ENABLE_NOTIF=1            # Set 0 to disable desktop notifications
-THEME="dark"              # Choose 'dark' or 'light'
-🐧 Requirements
-Make sure the following tools are installed:
-
-bash
-Copy code
-sudo apt install tor curl netcat expect telnet systemd
-🧩 Advanced Tips
-Use ./anonymity.sh setup to auto-create required systemd user services.
-
-Add the script to your system PATH or create an alias for quick access.
-
-Enable persistent Tor by checking tor@default.service if needed.
-
-📄 License
-This project is licensed under the MIT License.
-
-🤝 Contributing
-Contributions, suggestions, and improvements are always welcome!
-Just fork the repo and submit a pull request.
-
-🙌 Author
-Made with ❤️ by Hao-Tec
-
-yaml
-Copy code
+```
 
 ---
 
-### ✅ What You Should Do Next:
+## ⚙️ Configuration
 
-1. **Create the `README.md`** file:
+After first run, a config file will be auto-generated at:
+
 ```bash
-nano README.md
+~/.anonymity.conf
+```
+
+Default contents:
+
+```bash
+# ~/.anonymity.conf
+
+# Tor control port password
+AUTH_PASSWORD="ACILAB"
+
+# Enable desktop notifications (1 = yes, 0 = no)
+ENABLE_NOTIF=1
+
+# Interface theme (light or dark)
+THEME="dark"
+```
+
+You can manually edit this file anytime.
+
+---
+
+## 🧠 Features
+
+* ✅ Toggle Tor and NEWNYM services
+* 🔁 Auto IP rotation every 10 minutes
+* 🧪 Real-time Tor traffic check
+* 📊 Terminal dashboard with IP logs
+* 🔔 Desktop notifications on IP change
+* 🌃 Dark/light theme support
+* 🛠 One-command setup for systemd timers
+
+---
+
+## 🚀 Usage
+
+### Menu Mode
+
+```bash
+./anonymity.sh
+```
+
+### Command Mode
+
+```bash
+./anonymity.sh <command>
+```
+
+| Command         | Description                            |
+| --------------- | -------------------------------------- |
+| `toggle`        | Toggle both Tor and NEWNYM services    |
+| `toggle-tor`    | Toggle only Tor                        |
+| `toggle-newnym` | Toggle only NEWNYM                     |
+| `enable`        | Enable both services                   |
+| `disable`       | Disable both services                  |
+| `restart`       | Restart both services                  |
+| `newnym`        | Manually send NEWNYM signal            |
+| `check`         | Test if traffic is routed through Tor  |
+| `dashboard`     | Show last 10 Tor IP logs               |
+| `monitor`       | Live IP monitor (Ctrl+C to stop)       |
+| `setup`         | First-time systemd timer/service setup |
+| `status`        | Show current service status            |
+| `help`          | Show help message                      |
+
+---
+
+## 🌃 Themes
+
+The UI supports both **light** and **dark** color schemes.
+
+To change it:
+
+* Via config file:
+
+  ```bash
+  THEME="light"
+  ```
+
+* Or at runtime:
+
+  ```bash
+  ./anonymity.sh --theme=light
+  ```
+
+---
+
+## 🔧 Dependencies
+
+Install required packages:
+
+```bash
+sudo apt install tor curl nc expect telnet systemd notify-osd
+```
+
+> ⚠️ For full functionality, make sure `tor` is properly installed and your system supports `systemctl --user`.
+
+---
+
+## 📸 Screenshots
+
+### 🧭 Interactive Menu
+A sleek terminal UI for managing Tor anonymity features.
+
+![Interactive Menu](screenshots/menu.png)
+
+---
+
+### 🔍 Check Traffic via Tor
+Quick verification of whether your internet traffic is routed through Tor.
+
+![Tor Check](screenshots/check.png)
+
+---
+
+### 📊 Anonymity Dashboard
+Displays the latest logs, IP history, and service statuses in a visually helpful format.
+
+![Dashboard](screenshots/dashboard.png)
+
+---
+
+### ⚙️ Systemd Setup Automation
+Auto-creates the required service and timer files with a single command.
+
+![Setup Output](screenshots/setup.png)
+
+---
+
+## 🛡 Security Tips
+
+* Do **not share** your `.anonymity.conf` file publicly.
+* Restrict permissions:
+
+```bash
+chmod 600 ~/.anonymity.conf
+```
+
+---
+
+## 🤝 Contributing
+
+Pull requests and issue reports are welcome!
+
+👉 [https://github.com/Hao-Tec/tor-anonymity-toolkit](https://github.com/Hao-Tec/tor-anonymity-toolkit)
+
+---
+
+## 📄 License
+
+MIT License © 2025 [Hao-Tec](https://github.com/Hao-Tec)
+
+---
+
+## 🙌 Author
+
+Made with ❤️ by [Hao-Tec](https://github.com/Hao-Tec)
