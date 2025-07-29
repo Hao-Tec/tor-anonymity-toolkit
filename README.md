@@ -1,9 +1,14 @@
-# Tor Anonymity Toolkit
+# 🛡️ Tor Anonymity Toolkit
 
 ![Shell Script](https://img.shields.io/badge/Script-Shell-green?logo=gnu-bash&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Linux-blue?logo=linux)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Last Commit](https://img.shields.io/github/last-commit/Hao-Tec/tor-anonymity-toolkit)
+![Contributors](https://img.shields.io/github/contributors/Hao-Tec/tor-anonymity-toolkit)
+![Repo Size](https://img.shields.io/github/repo-size/Hao-Tec/tor-anonymity-toolkit)
+![Issues](https://img.shields.io/github/issues/Hao-Tec/tor-anonymity-toolkit)
+![Maintained](https://img.shields.io/badge/Maintained%3F-yes-white)
 
 A simple, powerful, and user-friendly Bash toolkit to help you manage **Tor identity rotation**, **traffic monitoring**, and **service control** — all from your terminal.
 
