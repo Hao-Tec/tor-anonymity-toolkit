@@ -96,6 +96,39 @@ function debug_log() {
   fi
 }
 
+function spinner() {
+  local pid=$1
+  local spinstr='|/-\'
+  # Hide cursor if tput is available
+  command -v tput &>/dev/null && tput civis
+
+  while kill -0 "$pid" 2>/dev/null; do
+    local temp=${spinstr#?}
+    printf " [%c] " "$spinstr"
+    local spinstr=$temp${spinstr%"$temp"}
+    sleep 0.1
+    printf "\b\b\b\b\b"
+  done
+  printf "     \b\b\b\b\b"
+
+  # Restore cursor
+  command -v tput &>/dev/null && tput cnorm
+}
+
+function check_dependencies() {
+  local missing=0
+  for cmd in expect telnet systemctl curl nc; do
+    if ! command -v $cmd &>/dev/null; then
+      echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
+      echo -e "Please install it using: ${YELLOW}sudo apt install $cmd${RESET}"
+      missing=1
+    fi
+  done
+  if [[ $missing -eq 1 ]]; then
+    exit 1
+  fi
+}
+
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
@@ -309,9 +342,10 @@ function newnym() {
     return
   fi
 
-  echo -e "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
+  echo -ne "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
 
-  RESULT=$(expect -c "
+  (
+  expect -c "
   log_user 0
   spawn telnet localhost $CONTROL_PORT
   expect {
@@ -333,9 +367,18 @@ function newnym() {
   }
   send \"quit\r\"
   expect eof
-  ")
+  " >/dev/null
+  exit $?
+  ) &
 
-  case $? in
+  local pid=$!
+  spinner $pid
+  wait $pid
+  local exit_code=$?
+
+  echo "" # New line after spinner
+
+  case $exit_code in
     0)
       echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
      monitor_once
@@ -463,14 +506,10 @@ EOF
   echo -e "${CYAN}You can check status using:${RESET} ${YELLOW}./anonymity.sh status${RESET}"
 }
 
-# Dependency Check
-for cmd in expect telnet systemctl curl nc; do
-  if ! command -v $cmd &>/dev/null; then
-    echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
-    echo -e "Please install it using: ${YELLOW}sudo apt install $cmd${RESET}"
-    exit 1
-  fi
-done
+# Skip dependency check for help
+if [[ "$1" != "help" && "$1" != "--help" && "$1" != "-h" ]]; then
+  check_dependencies
+fi
 
 DEBUG_MODE=0
 if [[ "$2" == "--debug" || "$1" == "--debug" ]]; then
