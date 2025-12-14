@@ -304,45 +304,46 @@ function restart_all() {
 }
 
 function newnym() {
-  if ! systemctl is-active --quiet $TOR_SERVICE; then
+  if ! systemctl is-active --quiet "$TOR_SERVICE"; then
     echo -e "${RED}Tor is not running. Cannot send NEWNYM.${RESET}"
     return
   fi
 
   echo -e "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
 
-  RESULT=$(expect -c "
-  log_user 0
-  spawn telnet localhost $CONTROL_PORT
-  expect {
-    \"Escape character is '^]'.\" { send \"authenticate \\\"$AUTH_PASSWORD\\\"\r\" }
-    timeout { exit 1 }
-    eof { exit 1 }
-  }
-  expect {
-    \"250 OK\" {}
-    \"515 Authentication failed\" { exit 2 }
-    timeout { exit 1 }
-    eof { exit 1 }
-  }
-  send \"signal NEWNYM\r\"
-  expect {
-    \"250 OK\" {}
-    timeout { exit 1 }
-    eof { exit 1 }
-  }
-  send \"quit\r\"
-  expect eof
-  ")
+  # Send commands to Tor Control Port via nc
+  # 1. Authenticate
+  # 2. Send signal
+  # 3. Quit
+  local output
+  output=$( {
+    echo "AUTHENTICATE \"$AUTH_PASSWORD\""
+    echo "signal NEWNYM"
+    echo "QUIT"
+  } | nc -w 5 localhost "$CONTROL_PORT" 2>&1 )
 
-  case $? in
-    0)
-      echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
+  local status=$?
+
+  if [[ $status -ne 0 ]]; then
+     echo -e "${RED}❌ Connection timed out or unexpected error (nc exit code $status).${RESET}"
+     return 1
+  fi
+
+  if [[ "$output" == *"515 Authentication failed"* ]]; then
+     echo -e "${RED}❌ Authentication failed. Check your control port password.${RESET}"
+     return 2
+  fi
+
+  if [[ "$output" == *"250 OK"* ]]; then
+     echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
      monitor_once
-    ;;
-    1) echo -e "${RED}❌ Connection timed out or unexpected error.${RESET}" ;;
-    2) echo -e "${RED}❌ Authentication failed. Check your control port password.${RESET}" ;;
-  esac
+     return 0
+  fi
+
+  # Fallback
+  echo -e "${RED}❌ Unexpected response from Tor:${RESET}"
+  echo "$output"
+  return 1
 }
 
 function status() {
@@ -464,7 +465,7 @@ EOF
 }
 
 # Dependency Check
-for cmd in expect telnet systemctl curl nc; do
+for cmd in systemctl curl nc; do
   if ! command -v $cmd &>/dev/null; then
     echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
     echo -e "Please install it using: ${YELLOW}sudo apt install $cmd${RESET}"
