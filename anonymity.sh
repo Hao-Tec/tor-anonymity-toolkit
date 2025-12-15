@@ -365,7 +365,7 @@ function restart_all() {
 }
 
 function newnym() {
-  if ! systemctl is-active --quiet $TOR_SERVICE; then
+  if ! systemctl is-active --quiet "$TOR_SERVICE"; then
     echo -e "${RED}Tor is not running. Cannot send NEWNYM.${RESET}"
     return
   fi
@@ -410,10 +410,13 @@ function newnym() {
     0)
       echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
      monitor_once
-    ;;
-    1) echo -e "${RED}❌ Connection timed out or unexpected error.${RESET}" ;;
-    2) echo -e "${RED}❌ Authentication failed. Check your control port password.${RESET}" ;;
-  esac
+     return 0
+  fi
+
+  # Fallback
+  echo -e "${RED}❌ Unexpected response from Tor:${RESET}"
+  echo "$output"
+  return 1
 }
 
 function status() {
