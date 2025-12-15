@@ -96,6 +96,39 @@ function debug_log() {
   fi
 }
 
+function spinner() {
+  local pid=$1
+  local spinstr='|/-\'
+  # Hide cursor if tput is available
+  command -v tput &>/dev/null && tput civis
+
+  while kill -0 "$pid" 2>/dev/null; do
+    local temp=${spinstr#?}
+    printf " [%c] " "$spinstr"
+    local spinstr=$temp${spinstr%"$temp"}
+    sleep 0.1
+    printf "\b\b\b\b\b"
+  done
+  printf "     \b\b\b\b\b"
+
+  # Restore cursor
+  command -v tput &>/dev/null && tput cnorm
+}
+
+function check_dependencies() {
+  local missing=0
+  for cmd in expect telnet systemctl curl nc; do
+    if ! command -v $cmd &>/dev/null; then
+      echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
+      echo -e "Please install it using: ${YELLOW}sudo apt install $cmd${RESET}"
+      missing=1
+    fi
+  done
+  if [[ $missing -eq 1 ]]; then
+    exit 1
+  fi
+}
+
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
@@ -112,7 +145,8 @@ function check_tor_status() {
     TOR_IP=""
     for url in "${IP_CHECKERS[@]}"; do
       debug_log "Trying IP checker: $url"
-      TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url" | tr -d '\r\n')
+      TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
+      TOR_IP="${TOR_IP//[$'\r\n']/}"
       if [[ $TOR_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         debug_log "Success from $url: $TOR_IP"
         break
@@ -129,7 +163,8 @@ function check_tor_status() {
     fi
 
     debug_log "Fetching real IP without proxy"
-    REAL_IP=$(curl -s --max-time 10 --noproxy '*' https://ident.me | tr -d '\r\n')
+    REAL_IP=$(curl -s --max-time 10 --noproxy '*' https://ident.me)
+    REAL_IP="${REAL_IP//[$'\r\n']/}"
     echo "Real IP: $REAL_IP"
 
     if [[ -n "$TOR_IP" && "$TOR_IP" != "$REAL_IP" ]]; then
@@ -141,7 +176,15 @@ function check_tor_status() {
     fi
 
     # Logging and notification
-    LAST_IP=$(tail -n 1 "$LOGFILE" 2>/dev/null | awk -F 'Tor IP: ' '{print $2}' | awk '{print $1}')
+    # Optimization: Use bash built-ins instead of awk to avoid extra process forks
+    last_line=$(tail -n 1 "$LOGFILE" 2>/dev/null)
+    if [[ "$last_line" == *"Tor IP: "* ]]; then
+      LAST_IP="${last_line#*Tor IP: }"
+      LAST_IP="${LAST_IP%% *}"
+    else
+      LAST_IP=""
+    fi
+
     if [[ "$TOR_IP" != "$LAST_IP" && -n "$TOR_IP" ]]; then
       append_log "$TOR_IP" "$REAL_IP" "$STATUS_MSG"
       send_notification "✅ Tor IP changed to $TOR_IP"
@@ -161,7 +204,8 @@ function check_tor_status() {
 function monitor_once() {
   TOR_IP=""
   for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
-    TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url" | tr -d '\r\n')
+    TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
+    TOR_IP="${TOR_IP//[$'\r\n']/}"
     [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
     TOR_IP=""
   done
@@ -169,8 +213,16 @@ function monitor_once() {
   if [[ -z "$TOR_IP" ]]; then
     MSG="⚠ Could not fetch Tor IP after NEWNYM"
   else
-    LAST_IP=$(tail -n 1 "$LOGFILE" 2>/dev/null | awk -F 'Tor IP: ' '{print $2}' | awk '{print $1}')
-    REAL_IP=$(curl -s --noproxy '*' https://ident.me | tr -d '\r\n')
+    # Optimization: Parse log using bash built-ins
+    last_line=$(tail -n 1 "$LOGFILE" 2>/dev/null)
+    if [[ "$last_line" == *"Tor IP: "* ]]; then
+      LAST_IP="${last_line#*Tor IP: }"
+      LAST_IP="${LAST_IP%% *}"
+    else
+      LAST_IP=""
+    fi
+    REAL_IP=$(curl -s --noproxy '*' https://ident.me)
+    REAL_IP="${REAL_IP//[$'\r\n']/}"
 
     if [[ "$TOR_IP" != "$LAST_IP" ]]; then
       MSG="✅ Tor IP changed: $TOR_IP"
@@ -192,7 +244,8 @@ function monitor_loop() {
   while true; do
     TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
-      TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url" | tr -d '\r\n')
+      TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
+      TOR_IP="${TOR_IP//[$'\r\n']/}"
       [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
       TOR_IP=""
     done
@@ -200,7 +253,8 @@ function monitor_loop() {
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
     else
-      REAL_IP=$(curl -s --noproxy '*' https://ident.me | tr -d '\r\n')
+      REAL_IP=$(curl -s --noproxy '*' https://ident.me)
+      REAL_IP="${REAL_IP//[$'\r\n']/}"
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
       else
@@ -228,7 +282,14 @@ function dashboard() {
   else
     prev_ip=""
     tail -n 10 "$LOGFILE" | while IFS= read -r line; do
-      ip=$(echo "$line" | awk -F 'Tor IP: ' '{print $2}' | awk '{print $1}')
+      # Optimization: Avoid calling awk/echo 20 times by using bash string manipulation
+      if [[ "$line" == *"Tor IP: "* ]]; then
+        ip="${line#*Tor IP: }"
+        ip="${ip%% *}"
+      else
+        ip=""
+      fi
+
       if [[ "$ip" != "$prev_ip" ]]; then
         echo -e "${YELLOW}$line${RESET}"
       else
@@ -309,33 +370,45 @@ function newnym() {
     return
   fi
 
-  echo -e "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
+  echo -ne "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
 
-  # Send commands to Tor Control Port via nc
-  # 1. Authenticate
-  # 2. Send signal
-  # 3. Quit
-  local output
-  output=$( {
-    echo "AUTHENTICATE \"$AUTH_PASSWORD\""
-    echo "signal NEWNYM"
-    echo "QUIT"
-  } | nc -w 5 localhost "$CONTROL_PORT" 2>&1 )
+  (
+  expect -c "
+  log_user 0
+  spawn telnet localhost $CONTROL_PORT
+  expect {
+    \"Escape character is '^]'.\" { send \"authenticate \\\"$AUTH_PASSWORD\\\"\r\" }
+    timeout { exit 1 }
+    eof { exit 1 }
+  }
+  expect {
+    \"250 OK\" {}
+    \"515 Authentication failed\" { exit 2 }
+    timeout { exit 1 }
+    eof { exit 1 }
+  }
+  send \"signal NEWNYM\r\"
+  expect {
+    \"250 OK\" {}
+    timeout { exit 1 }
+    eof { exit 1 }
+  }
+  send \"quit\r\"
+  expect eof
+  " >/dev/null
+  exit $?
+  ) &
 
-  local status=$?
+  local pid=$!
+  spinner $pid
+  wait $pid
+  local exit_code=$?
 
-  if [[ $status -ne 0 ]]; then
-     echo -e "${RED}❌ Connection timed out or unexpected error (nc exit code $status).${RESET}"
-     return 1
-  fi
+  echo "" # New line after spinner
 
-  if [[ "$output" == *"515 Authentication failed"* ]]; then
-     echo -e "${RED}❌ Authentication failed. Check your control port password.${RESET}"
-     return 2
-  fi
-
-  if [[ "$output" == *"250 OK"* ]]; then
-     echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
+  case $exit_code in
+    0)
+      echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
      monitor_once
      return 0
   fi
@@ -464,14 +537,10 @@ EOF
   echo -e "${CYAN}You can check status using:${RESET} ${YELLOW}./anonymity.sh status${RESET}"
 }
 
-# Dependency Check
-for cmd in systemctl curl nc; do
-  if ! command -v $cmd &>/dev/null; then
-    echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
-    echo -e "Please install it using: ${YELLOW}sudo apt install $cmd${RESET}"
-    exit 1
-  fi
-done
+# Skip dependency check for help
+if [[ "$1" != "help" && "$1" != "--help" && "$1" != "-h" ]]; then
+  check_dependencies
+fi
 
 DEBUG_MODE=0
 if [[ "$2" == "--debug" || "$1" == "--debug" ]]; then
