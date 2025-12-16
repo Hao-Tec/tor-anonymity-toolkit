@@ -117,7 +117,7 @@ function spinner() {
 
 function check_dependencies() {
   local missing=0
-  for cmd in expect telnet systemctl curl nc; do
+  for cmd in systemctl curl nc; do
     if ! command -v $cmd &>/dev/null; then
       echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
       echo -e "Please install it using: ${YELLOW}sudo apt install $cmd${RESET}"
@@ -372,51 +372,43 @@ function newnym() {
 
   echo -ne "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
 
+  local response_file
+  response_file=$(mktemp)
+
   (
-  expect -c "
-  log_user 0
-  spawn telnet localhost $CONTROL_PORT
-  expect {
-    \"Escape character is '^]'.\" { send \"authenticate \\\"$AUTH_PASSWORD\\\"\r\" }
-    timeout { exit 1 }
-    eof { exit 1 }
-  }
-  expect {
-    \"250 OK\" {}
-    \"515 Authentication failed\" { exit 2 }
-    timeout { exit 1 }
-    eof { exit 1 }
-  }
-  send \"signal NEWNYM\r\"
-  expect {
-    \"250 OK\" {}
-    timeout { exit 1 }
-    eof { exit 1 }
-  }
-  send \"quit\r\"
-  expect eof
-  " >/dev/null
-  exit $?
+    {
+      echo "AUTHENTICATE \"$AUTH_PASSWORD\""
+      echo "SIGNAL NEWNYM"
+      echo "QUIT"
+    } | nc -w 5 localhost "$CONTROL_PORT" > "$response_file" 2>&1
   ) &
 
   local pid=$!
   spinner $pid
   wait $pid
-  local exit_code=$?
+
+  local response
+  response=$(cat "$response_file")
+  rm -f "$response_file"
 
   echo "" # New line after spinner
 
-  case $exit_code in
-    0)
-      echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
+  if [[ "$response" == *"515 Authentication failed"* ]]; then
+    echo -e "${RED}❌ Authentication failed. Check AUTH_PASSWORD in ~/.anonymity.conf${RESET}"
+    return 1
+  elif [[ "$response" == *"250 OK"* ]]; then
+     echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
      monitor_once
      return 0
+  else
+     echo -e "${RED}❌ Failed to communicate with Tor Control Port.${RESET}"
+     if [[ -n "$response" ]]; then
+       echo -e "Response:\n$response"
+     else
+       echo -e "No response from localhost:$CONTROL_PORT"
+     fi
+     return 1
   fi
-
-  # Fallback
-  echo -e "${RED}❌ Unexpected response from Tor:${RESET}"
-  echo "$output"
-  return 1
 }
 
 function status() {
