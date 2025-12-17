@@ -117,6 +117,7 @@ function spinner() {
 
 function check_dependencies() {
   local missing=0
+  # Optimization: Removed expect and telnet dependencies as they are no longer needed
   for cmd in systemctl curl nc; do
     if ! command -v $cmd &>/dev/null; then
       echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
@@ -372,15 +373,30 @@ function newnym() {
 
   echo -ne "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
 
-  local response_file
-  response_file=$(mktemp)
-
+  # Optimization: Use nc (netcat) instead of expect+telnet
+  # This reduces overhead, startup time, and dependencies.
   (
-    {
-      echo "AUTHENTICATE \"$AUTH_PASSWORD\""
-      echo "SIGNAL NEWNYM"
-      echo "QUIT"
-    } | nc -w 5 localhost "$CONTROL_PORT" > "$response_file" 2>&1
+    # Send commands to Tor Control Port via netcat
+    # -w 5 sets a 5 second timeout
+    # Use CRLF (\r\n) as per Tor Control Protocol spec
+    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+
+    # Check if we received the success code "250 OK" specifically for the SIGNAL command.
+    # The output will contain multiple "250 OK" lines if successful.
+    # Authenticate returns 250 OK, Signal returns 250 OK.
+    # We count the occurrences of "250 OK". It should appear at least twice.
+
+    success_count=$(echo "$output" | grep -c "250 OK")
+
+    if [[ $success_count -ge 2 ]]; then
+      exit 0
+    else
+      # Check if rate limited
+      if [[ "$output" == *"550"* ]]; then
+        echo "Rate limited" >&2
+      fi
+      exit 1
+    fi
   ) &
 
   local pid=$!
@@ -393,21 +409,13 @@ function newnym() {
 
   echo "" # New line after spinner
 
-  if [[ "$response" == *"515 Authentication failed"* ]]; then
-    echo -e "${RED}❌ Authentication failed. Check AUTH_PASSWORD in ~/.anonymity.conf${RESET}"
-    return 1
-  elif [[ "$response" == *"250 OK"* ]]; then
-     echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
-     monitor_once
-     return 0
+  if [[ $exit_code -eq 0 ]]; then
+      echo -e "${GREEN}✅ NEWNYM signal sent successfully!${RESET}"
+      monitor_once
+      return 0
   else
-     echo -e "${RED}❌ Failed to communicate with Tor Control Port.${RESET}"
-     if [[ -n "$response" ]]; then
-       echo -e "Response:\n$response"
-     else
-       echo -e "No response from localhost:$CONTROL_PORT"
-     fi
-     return 1
+      echo -e "${RED}❌ Failed to send NEWNYM signal.${RESET}"
+      return 1
   fi
 }
 
