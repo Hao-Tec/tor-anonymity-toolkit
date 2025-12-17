@@ -37,6 +37,7 @@ ENABLE_NOTIF=1
 THEME="dark"
 EOF
   echo -e "${GREEN}✅ Default config created. You can edit it at ~/.anonymity.conf${RESET}"
+  chmod 600 "$CONFIG_FILE"
 fi
 
 echo -e "${CYAN}🔧 Loading config from $CONFIG_FILE...${RESET}"
@@ -514,7 +515,7 @@ Description=Send NEWNYM signal to Tor to change identity
 [Service]
 Type=oneshot
 Environment=ENABLE_NOTIF=1
-ExecStart=$SCRIPT_PATH newnym
+ExecStart="$SCRIPT_PATH" newnym
 EOF
 
   cat > "$TIMER_FILE" <<EOF
