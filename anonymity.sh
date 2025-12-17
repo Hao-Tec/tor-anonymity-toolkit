@@ -402,10 +402,7 @@ function newnym() {
   local pid=$!
   spinner $pid
   wait $pid
-
-  local response
-  response=$(cat "$response_file")
-  rm -f "$response_file"
+  local exit_code=$?
 
   echo "" # New line after spinner
 
@@ -460,21 +457,38 @@ function show_help() {
 
 function interactive_menu() {
   while true; do
+    # Get status for header
+    if systemctl is-active --quiet "$TOR_SERVICE"; then
+      t_stat="${GREEN}ON ${RESET}"
+    else
+      t_stat="${RED}OFF${RESET}"
+    fi
+
+    if systemctl --user is-active --quiet "$NEWNYM_TIMER"; then
+      n_stat="${GREEN}ON ${RESET}"
+    else
+      n_stat="${RED}OFF${RESET}"
+    fi
+
     clear
     echo -e "${CYAN}╔══════════════════════════════════════════╗"
     echo -e "║     🔐 ${YELLOW}TOR ANONYMITY CONTROL PANEL${CYAN} 🔐     ║"
+    echo -e "╠══════════════════════════════════════════╣"
+    echo -e "║   Tor Service: ${t_stat}  |   Auto-Rot: ${n_stat}    ║"
     echo -e "╚══════════════════════════════════════════╝${RESET}"
-    echo -e "${GREEN} 1) Toggle Tor + NEWNYM"
-    echo -e " 2) Show Status"
-    echo -e " 3) Send NEWNYM Signal"
-    echo -e " 4) Enable Tor + NEWNYM"
-    echo -e " 5) Disable Tor + NEWNYM"
-    echo -e " 6) Restart Both Services"
-    echo -e " 7) Check if Traffic is via Tor"
-    echo -e " 8) Monitor Tor IP (Live)"
-    echo -e " 9) Show Dashboard"
-   echo -e " 10) Show Help"
-   echo -e " 11) Exit"
+    echo -e "${GREEN}  1) Toggle Tor + NEWNYM"
+    echo -e "  2) Show Status"
+    echo -e "  3) Send NEWNYM Signal"
+    echo -e "  4) Enable Tor + NEWNYM"
+    echo -e "  5) Disable Tor + NEWNYM"
+    echo -e "  6) Restart Both Services"
+    echo -e "  7) Check if Traffic is via Tor"
+    echo -e "  8) Monitor Tor IP (Live)"
+    echo -e "  9) Show Dashboard"
+    echo -e " 10) Show Help"
+    echo -e " 11) Exit"
+    echo
+    echo -e "${CYAN}💡 ProTip:${RESET} Use ${YELLOW}monitor${RESET} to watch your IP change in real-time."
     echo
     read -p "$(echo -e "${YELLOW}Choose an option [1-11]: ${RESET}")" choice
 
