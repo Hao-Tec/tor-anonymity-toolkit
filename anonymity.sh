@@ -402,7 +402,10 @@ function newnym() {
   local pid=$!
   spinner $pid
   wait $pid
-  local exit_code=$?
+
+  local response
+  response=$(cat "$response_file")
+  rm -f "$response_file"
 
   echo "" # New line after spinner
 
