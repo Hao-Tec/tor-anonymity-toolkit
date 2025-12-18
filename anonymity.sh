@@ -24,7 +24,11 @@ LOGFILE="$HOME/.tor_anonymity.log"
 CONFIG_FILE="$HOME/.anonymity.conf"
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo -e "${YELLOW}⚠ No config file found. Creating default ~/.anonymity.conf...${RESET}"
-  cat > "$CONFIG_FILE" <<EOF
+
+  # Security: Create file with restricted permissions atomically using umask
+  (
+    umask 077
+    cat > "$CONFIG_FILE" <<EOF
 # Configuration for anonymity.sh
 
 # Control port password for Tor (used in NEWNYM command)
@@ -36,8 +40,8 @@ ENABLE_NOTIF=1
 # Optional: Choose interface theme (light/dark)
 THEME="dark"
 EOF
+  )
   echo -e "${GREEN}✅ Default config created. You can edit it at ~/.anonymity.conf${RESET}"
-  chmod 600 "$CONFIG_FILE"
 fi
 
 echo -e "${CYAN}🔧 Loading config from $CONFIG_FILE...${RESET}"
@@ -72,6 +76,20 @@ export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 
 # Log file path
 LOGFILE="$HOME/.tor_anonymity.log"
+
+# Security: Ensure log file has restricted permissions
+if [[ ! -f "$LOGFILE" ]]; then
+  (
+    umask 077
+    touch "$LOGFILE"
+  )
+else
+  # Ensure existing log file is secure
+  current_perms=$(stat -c "%a" "$LOGFILE" 2>/dev/null)
+  if [[ "$current_perms" != "600" ]]; then
+    chmod 600 "$LOGFILE"
+  fi
+fi
 
 function send_notification() {
   if [[ "$ENABLE_NOTIF" == "1" ]] && command -v notify-send &>/dev/null; then
