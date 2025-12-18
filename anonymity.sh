@@ -447,6 +447,7 @@ function show_help() {
   echo "  dashboard      Show last 10 IP logs and service status"
   echo "  menu           Launch interactive selection menu"
   echo "  monitor        Run ephemeral IP monitoring (manual or after NEWNYM)"
+  echo "  setup          First-time systemd timer/service setup"
   echo "  help           Show this help message"
   echo
   echo -e "${YELLOW}Optional Flags:${RESET}"
@@ -474,6 +475,15 @@ function interactive_menu() {
     echo -e "╠══════════════════════════════════════════╣"
     echo -e "║   Tor Service: ${t_stat}  |   Auto-Rot: ${n_stat}    ║"
     echo -e "╚══════════════════════════════════════════╝${RESET}"
+
+    # Check for setup
+    SERVICE_FILE="$HOME/.config/systemd/user/tor-newnym.service"
+    if [[ ! -f "$SERVICE_FILE" ]]; then
+      echo -e "${YELLOW}  0) ⚡ Run First-Time Setup (Recommended)${RESET}"
+    else
+      echo -e "  0) Re-run Setup"
+    fi
+
     echo -e "${GREEN}  1) Toggle Tor + NEWNYM"
     echo -e "  2) Show Status"
     echo -e "  3) Send NEWNYM Signal"
@@ -488,9 +498,10 @@ function interactive_menu() {
     echo
     echo -e "${CYAN}💡 ProTip:${RESET} Use ${YELLOW}monitor${RESET} to watch your IP change in real-time."
     echo
-    read -p "$(echo -e "${YELLOW}Choose an option [1-11]: ${RESET}")" choice
+    read -p "$(echo -e "${YELLOW}Choose an option [0-11]: ${RESET}")" choice
 
     case $choice in
+    0) setup_systemd_files ;;
   	1) toggle_tor; toggle_newnym ;;
   	2) status ;;
   	3) newnym ;;
