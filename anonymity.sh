@@ -384,11 +384,8 @@ function newnym() {
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
     # The output will contain multiple "250 OK" lines if successful.
     # Authenticate returns 250 OK, Signal returns 250 OK.
-    # We count the occurrences of "250 OK". It should appear at least twice.
-
-    success_count=$(echo "$output" | grep -c "250 OK")
-
-    if [[ $success_count -ge 2 ]]; then
+    # Optimization: Use bash pattern matching instead of pipe to grep (avoids fork)
+    if [[ "$output" == *"250 OK"*"250 OK"* ]]; then
       exit 0
     else
       # Check if rate limited
