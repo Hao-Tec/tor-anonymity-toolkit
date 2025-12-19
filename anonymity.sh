@@ -518,22 +518,22 @@ function interactive_menu() {
     echo
     echo -e "${CYAN}💡 ProTip:${RESET} Use ${YELLOW}monitor${RESET} to watch your IP change in real-time."
     echo
-    read -p "$(echo -e "${YELLOW}Choose an option [0-11]: ${RESET}")" choice
+    read -p "$(echo -e "${YELLOW}Choose option [0-11] or 'q' to quit: ${RESET}")" choice
 
     case $choice in
     0) setup_systemd_files ;;
   	1) toggle_tor; toggle_newnym ;;
-  	2) status ;;
+	2|s|S) status ;;
   	3) newnym ;;
   	4) enable_all ;;
   	5) disable_all ;;
   	6) restart_all ;;
-  	7) check_tor_status ;;
-  	8) monitor_loop ;;
-        9) dashboard ;;
-       10) show_help ;;
-       11) echo -e "${CYAN}Exiting... Stay safe! 🛡${RESET}"; break ;;
-  	*) echo -e "${RED}Invalid option. Please choose between 1-11.${RESET}" ;;
+	7|c|C) check_tor_status ;;
+	8|m|M) monitor_loop ;;
+    9|d|D) dashboard ;;
+    10|h|H) show_help ;;
+    11|q|Q|exit) echo -e "${CYAN}Exiting... Stay safe! 🛡${RESET}"; break ;;
+	*) echo -e "${RED}Invalid option. Please choose between 1-11 or 'q'.${RESET}" ;;
      esac
 
     echo -e "\n${CYAN}Press ENTER to return to the menu...${RESET}"; read
