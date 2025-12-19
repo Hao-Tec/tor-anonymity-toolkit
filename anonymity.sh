@@ -72,7 +72,8 @@ else
 fi
 
 # Ensure user systemd is running (for desktop session)
-export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+# Optimization: Use $EUID builtin instead of $(id -u) subshell
+export XDG_RUNTIME_DIR="/run/user/${EUID}"
 
 # Log file path
 LOGFILE="$HOME/.tor_anonymity.log"
@@ -338,7 +339,8 @@ fi
 function toggle_tor() {
   if systemctl is-active --quiet $TOR_SERVICE; then
     echo -e "${YELLOW}🟢 Tor ON — turning it OFF...${RESET}"
-    sudo systemctl stop $TOR_SERVICE && sudo systemctl disable $TOR_SERVICE
+    # Optimization: Use disable --now (combines stop and disable, faster)
+    sudo systemctl disable --now $TOR_SERVICE
     echo -e "${RED}🔴 Tor OFF.${RESET}"
   else
     echo -e "${YELLOW}🔴 Tor OFF — turning it ON...${RESET}"
@@ -350,12 +352,12 @@ function toggle_tor() {
 function toggle_newnym() {
   if systemctl --user is-active --quiet $NEWNYM_TIMER; then
     echo -e "${YELLOW}🟢 NEWNYM timer ON — turning it OFF...${RESET}"
-    systemctl --user stop $NEWNYM_TIMER && systemctl --user disable $NEWNYM_TIMER
+    # Optimization: Use disable --now (combines stop and disable)
+    systemctl --user disable --now $NEWNYM_TIMER
     echo -e "${RED}🔴 NEWNYM timer OFF.${RESET}"
   else
     echo -e "${YELLOW}🔴 NEWNYM timer OFF — turning it ON...${RESET}"
-    systemctl --user daemon-reexec
-    systemctl --user daemon-reload
+    # Optimization: Removed unnecessary daemon-reexec/reload
     systemctl --user enable --now $NEWNYM_TIMER
     echo -e "${GREEN}🟢 NEWNYM timer ON.${RESET}"
   fi
@@ -370,16 +372,16 @@ function enable_all() {
 
 function disable_all() {
   echo -e "${CYAN}Disabling Tor and NEWNYM timer...${RESET}"
-  sudo systemctl stop $TOR_SERVICE && sudo systemctl disable $TOR_SERVICE
-  systemctl --user stop $NEWNYM_TIMER && systemctl --user disable $NEWNYM_TIMER
+  # Optimization: Use disable --now
+  sudo systemctl disable --now $TOR_SERVICE
+  systemctl --user disable --now $NEWNYM_TIMER
   echo -e "${RED}⛔ Both services disabled.${RESET}"
 }
 
 function restart_all() {
   echo -e "${YELLOW}🔄 Restarting Tor and NEWNYM timer...${RESET}"
   sudo systemctl restart $TOR_SERVICE
-  systemctl --user daemon-reexec
-  systemctl --user daemon-reload
+  # Optimization: Removed unnecessary daemon-reexec/reload
   systemctl --user restart $NEWNYM_TIMER
   echo -e "${GREEN}✅ Restart complete.${RESET}"
 }
@@ -595,5 +597,3 @@ case "$1" in
   setup) setup_systemd_files ;;
   *) echo -e "${RED}Unknown command: $1${RESET}"; show_help ;;
 esac
-
-
