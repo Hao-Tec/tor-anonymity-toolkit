@@ -45,6 +45,11 @@ EOF
 fi
 
 echo -e "${CYAN}🔧 Loading config from $CONFIG_FILE...${RESET}"
+# Security: Enforce restricted permissions before sourcing
+if [[ -f "$CONFIG_FILE" ]]; then
+  # Ensure config file is only readable/writable by owner (chmod is idempotent)
+  chmod 600 "$CONFIG_FILE" 2>/dev/null
+fi
 source "$CONFIG_FILE"
 
 # Runtime overrides (e.g., --debug, --theme=dark)
@@ -399,8 +404,9 @@ function newnym() {
   (
     # Send commands to Tor Control Port via netcat
     # -w 5 sets a 5 second timeout
+    # Use printf to avoid command injection from escape sequences in password
     # Use CRLF (\r\n) as per Tor Control Protocol spec
-    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+    output=$(printf "AUTHENTICATE \"%s\"\r\nSIGNAL NEWNYM\r\nQUIT\r\n" "$AUTH_PASSWORD" | nc -w 5 localhost $CONTROL_PORT 2>&1)
 
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
     # The output will contain multiple "250 OK" lines if successful.
