@@ -8,11 +8,19 @@ AUTH_PASSWORD="ACILAB"  # Change this to your actual control port password
 TOR_SOCKS="127.0.0.1:9050"
 
 # Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-RESET='\033[0m'
+if [[ -n "${NO_COLOR:-}" ]]; then
+  RED=''
+  GREEN=''
+  CYAN=''
+  YELLOW=''
+  RESET=''
+else
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  CYAN='\033[0;36m'
+  YELLOW='\033[1;33m'
+  RESET='\033[0m'
+fi
 
 # Default Configuration (can be overridden by .anonymity.conf)
 AUTH_PASSWORD="${AUTH_PASSWORD:-ACILAB}"
@@ -57,7 +65,10 @@ for arg in "$@"; do
 done
 
 # Theme-aware color definitions
-if [[ "$THEME" == "light" ]]; then
+if [[ -n "${NO_COLOR:-}" ]]; then
+  # NO_COLOR set, keep colors disabled
+  :
+elif [[ "$THEME" == "light" ]]; then
   RED='\033[0;31m'
   GREEN='\033[0;32m'
   CYAN='\033[0;36m'
