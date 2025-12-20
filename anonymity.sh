@@ -103,7 +103,8 @@ function send_notification() {
 
 function append_log() {
   local timestamp ip_tor ip_real status
-  timestamp="$(date +"%Y-%m-%d %H:%M:%S")"
+  # Optimization: Use printf builtin (Bash 4.2+) instead of forking 'date'
+  printf -v timestamp '%(%Y-%m-%d %H:%M:%S)T' -1
   ip_tor="$1"
   ip_real="$2"
   status="$3"
