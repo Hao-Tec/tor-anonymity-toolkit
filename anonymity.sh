@@ -273,7 +273,12 @@ function monitor_once() {
 # Used for live monitoring when user runs './anonymity.sh monitor'
 function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
-  PREV_IP=""
+  local PREV_IP=""
+  local REAL_IP=""
+  local TOR_IP
+  local MSG
+  local url
+
   while true; do
     TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
@@ -286,8 +291,12 @@ function monitor_loop() {
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
     else
-      REAL_IP=$(curl -s --noproxy '*' https://ident.me)
-      REAL_IP="${REAL_IP//[$'\r\n']/}"
+      # Optimization: Cache Real IP to avoid redundant API calls every minute
+      if [[ -z "$REAL_IP" ]]; then
+        REAL_IP=$(curl -s --max-time 10 --noproxy '*' https://ident.me)
+        REAL_IP="${REAL_IP//[$'\r\n']/}"
+      fi
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
       else
