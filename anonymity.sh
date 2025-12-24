@@ -177,17 +177,35 @@ function check_tor_status() {
 
     TOR_IP=""
     for url in "${IP_CHECKERS[@]}"; do
+      # Extract hostname for UX feedback
+      host="${url#*://}"
+      host="${host%%/*}"
+
+      # UX: Show progress (only in interactive mode and not debugging)
+      if [[ -t 1 && $DEBUG_MODE -ne 1 ]]; then
+         echo -ne "\r${CYAN}   Trying $host...${RESET}\033[K"
+      fi
+
       debug_log "Trying IP checker: $url"
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
       TOR_IP="${TOR_IP//[$'\r\n']/}"
       if [[ $TOR_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         debug_log "Success from $url: $TOR_IP"
+        # UX: Clear the 'Trying...' line on success
+        if [[ -t 1 && $DEBUG_MODE -ne 1 ]]; then
+           echo -ne "\r\033[K"
+        fi
         break
       else
         debug_log "Failed from $url or invalid IP: '$TOR_IP'"
         TOR_IP=""
       fi
     done
+
+    # UX: Clear any stuck "Trying..." line if all failed
+    if [[ -t 1 && $DEBUG_MODE -ne 1 ]]; then
+       echo -ne "\r\033[K"
+    fi
 
     if [[ -z $TOR_IP ]]; then
       echo -e "${YELLOW}⚠ Could not fetch a valid Tor IP. All checkers failed or timed out.${RESET}"
