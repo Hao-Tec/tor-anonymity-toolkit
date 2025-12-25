@@ -274,6 +274,7 @@ function monitor_once() {
 function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
   PREV_IP=""
+  REAL_IP=""
   while true; do
     TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
@@ -286,8 +287,16 @@ function monitor_loop() {
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
     else
-      REAL_IP=$(curl -s --noproxy '*' https://ident.me)
-      REAL_IP="${REAL_IP//[$'\r\n']/}"
+      # Optimization: Cache Real IP to avoid redundant network calls in loop
+      if [[ -z "$REAL_IP" ]]; then
+        REAL_IP=$(curl -s --noproxy '*' https://ident.me)
+        REAL_IP="${REAL_IP//[$'\r\n']/}"
+        # Validate that we got a proper IP before caching (simple check)
+        if [[ ! "$REAL_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ && ! "$REAL_IP" =~ ^[0-9a-fA-F:]+$ ]]; then
+             REAL_IP="" # Clear if invalid so we retry
+        fi
+      fi
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
       else
