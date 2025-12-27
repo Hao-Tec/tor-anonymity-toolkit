@@ -516,36 +516,36 @@ function interactive_menu() {
       echo -e "  0) Re-run Setup"
     fi
 
-    echo -e "${GREEN}  1) Toggle Tor + NEWNYM"
-    echo -e "  2) Show Status"
-    echo -e "  3) Send NEWNYM Signal"
-    echo -e "  4) Enable Tor + NEWNYM"
-    echo -e "  5) Disable Tor + NEWNYM"
-    echo -e "  6) Restart Both Services"
-    echo -e "  7) Check if Traffic is via Tor"
-    echo -e "  8) Monitor Tor IP (Live)"
-    echo -e "  9) Show Dashboard"
-    echo -e " 10) Show Help"
-    echo -e " 11) Exit"
+    echo -e "${GREEN}  1) [t] Toggle Tor + NEWNYM"
+    echo -e "  2) [s] Show Status"
+    echo -e "  3) [n] Send NEWNYM Signal"
+    echo -e "  4) [e] Enable Tor + NEWNYM"
+    echo -e "  5) Turn [o]ff (Disable)"
+    echo -e "  6) [r] Restart Both Services"
+    echo -e "  7) [c] Check if Traffic is via Tor"
+    echo -e "  8) [m] Monitor Tor IP (Live)"
+    echo -e "  9) [d] Show Dashboard"
+    echo -e " 10) [h] Show Help"
+    echo -e " 11) [q] Exit"
     echo
     echo -e "${CYAN}💡 ProTip:${RESET} Use ${YELLOW}monitor${RESET} to watch your IP change in real-time."
     echo
-    read -p "$(echo -e "${YELLOW}Choose option [0-11] or 'q' to quit: ${RESET}")" choice
+    read -p "$(echo -e "${YELLOW}Choose option [0-11] or [key]: ${RESET}")" choice
 
     case $choice in
     0) setup_systemd_files ;;
-  	1) toggle_tor; toggle_newnym ;;
+	1|t|T) toggle_tor; toggle_newnym ;;
 	2|s|S) status ;;
-  	3) newnym ;;
-  	4) enable_all ;;
-  	5) disable_all ;;
-  	6) restart_all ;;
+	3|n|N) newnym ;;
+	4|e|E) enable_all ;;
+	5|o|O) disable_all ;;
+	6|r|R) restart_all ;;
 	7|c|C) check_tor_status ;;
 	8|m|M) monitor_loop ;;
     9|d|D) dashboard ;;
     10|h|H) show_help ;;
     11|q|Q|exit) echo -e "${CYAN}Exiting... Stay safe! 🛡${RESET}"; break ;;
-	*) echo -e "${RED}Invalid option. Please choose between 1-11 or 'q'.${RESET}" ;;
+	*) echo -e "${RED}Invalid option. Please choose between 1-11 or [key].${RESET}" ;;
      esac
 
     echo -e "\n${CYAN}Press ENTER to return to the menu...${RESET}"; read
