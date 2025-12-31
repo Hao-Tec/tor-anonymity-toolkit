@@ -5,3 +5,7 @@
 ## 2024-05-23 - Respecting User Environment
 **Learning:** Command line tools often ignore the `NO_COLOR` standard, forcing users with accessibility needs or log-parsing requirements to deal with ANSI escape codes. Implementing `NO_COLOR` support is a simple but critical accessibility feature for CLI tools.
 **Action:** Always check `NO_COLOR` env var before initializing color constants in shell scripts.
+
+## 2025-02-17 - Reducing Friction in CLI Navigation
+**Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
+**Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.

@@ -548,7 +548,8 @@ function interactive_menu() {
 	*) echo -e "${RED}Invalid option. Please choose between 1-11 or 'q'.${RESET}" ;;
      esac
 
-    echo -e "\n${CYAN}Press ENTER to return to the menu...${RESET}"; read
+    echo -e "\n${CYAN}Press any key to return to the menu...${RESET}"
+    read -n 1 -s -r
   done
 }
 
