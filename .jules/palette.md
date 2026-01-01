@@ -12,3 +12,7 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+
+## 2025-05-23 - Visual Feedback on Network Latency
+**Learning:** In CLI tools, silent blocking network operations (like `curl`) are often perceived as application freezes/crashes by users.
+**Action:** Always provide ephemeral visual feedback (e.g. "Connecting...") using `stderr` (`>&2`) and carriage returns (`\r`) for any blocking network call that exceeds ~500ms, ensuring it doesn't pollute stdout data capture.
