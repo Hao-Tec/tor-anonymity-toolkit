@@ -149,8 +149,8 @@ function spinner() {
 
 function check_dependencies() {
   local missing=0
-  # Optimization: Removed expect and telnet dependencies as they are no longer needed
-  for cmd in systemctl curl nc; do
+  # Optimization: Removed expect, telnet and netcat dependencies as they are no longer needed
+  for cmd in systemctl curl; do
     if ! command -v $cmd &>/dev/null; then
       echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
       echo -e "Please install it using: ${YELLOW}sudo apt install $cmd${RESET}"
@@ -165,7 +165,7 @@ function check_dependencies() {
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
-  if nc -z -w3 127.0.0.1 9050; then
+  if (echo > /dev/tcp/127.0.0.1/9050) &>/dev/null; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
     IP_CHECKERS=(
@@ -424,22 +424,30 @@ function newnym() {
 
   echo -ne "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
 
-  # Optimization: Use nc (netcat) instead of expect+telnet
-  # This reduces overhead, startup time, and dependencies.
+  # Optimization: Use Bash built-in /dev/tcp instead of nc (netcat)
+  # This reduces process forks and removes the 'nc' dependency.
   (
-    # Send commands to Tor Control Port via netcat
-    # -w 5 sets a 5 second timeout
-    # Use CRLF (\r\n) as per Tor Control Protocol spec
-    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+    # Open connection to Tor Control Port
+    if ! exec 3<>/dev/tcp/127.0.0.1/$CONTROL_PORT; then
+      exit 1
+    fi
+
+    # Send commands: AUTHENTICATE, SIGNAL NEWNYM, QUIT
+    # Use printf for reliable CRLF line endings
+    printf "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r\n" >&3
+
+    # Read response
+    # We read until EOF (connection closed by Tor after QUIT) or timeout loop
+    output=""
+    while read -r -t 1 line <&3; do
+        output+="$line"$'\n'
+    done
+    exec 3<&-
 
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
-    # The output will contain multiple "250 OK" lines if successful.
-    # Authenticate returns 250 OK, Signal returns 250 OK.
-    # Optimization: Use bash pattern matching instead of pipe to grep (avoids fork)
     if [[ "$output" == *"250 OK"*"250 OK"* ]]; then
       exit 0
     else
-      # Check if rate limited
       if [[ "$output" == *"550"* ]]; then
         echo "Rate limited" >&2
       fi
