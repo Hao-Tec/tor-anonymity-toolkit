@@ -177,6 +177,9 @@ function check_tor_status() {
 
     TOR_IP=""
     for url in "${IP_CHECKERS[@]}"; do
+      if [[ -t 1 ]]; then
+        echo -ne "${YELLOW}⏳ Connecting to ${url}...${RESET}\r"
+      fi
       debug_log "Trying IP checker: $url"
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
       TOR_IP="${TOR_IP//[$'\r\n']/}"
@@ -188,6 +191,10 @@ function check_tor_status() {
         TOR_IP=""
       fi
     done
+
+    if [[ -t 1 ]]; then
+      echo -ne "                                                                \r"
+    fi
 
     if [[ -z $TOR_IP ]]; then
       echo -e "${YELLOW}⚠ Could not fetch a valid Tor IP. All checkers failed or timed out.${RESET}"
@@ -520,7 +527,7 @@ function interactive_menu() {
     echo -e "  2) [s]tatus"
     echo -e "  3) Send [n]ewnym Signal"
     echo -e "  4) [e]nable Tor + NEWNYM"
-    echo -e "  5) Disable Tor + NEWNYM (o)"
+    echo -e "  5) Turn [o]ff Tor + NEWNYM"
     echo -e "  6) [r]estart Both Services"
     echo -e "  7) [c]heck if Traffic is via Tor"
     echo -e "  8) [m]onitor Tor IP (Live)"
