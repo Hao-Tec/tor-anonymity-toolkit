@@ -7,6 +7,14 @@ CONTROL_PORT=9051
 AUTH_PASSWORD="ACILAB"  # Change this to your actual control port password
 TOR_SOCKS="127.0.0.1:9050"
 
+# IP Checkers
+IP_CHECKERS=(
+  "https://ident.me"
+  "https://ifconfig.me/ip"
+  "https://icanhazip.com"
+  "https://checkip.amazonaws.com"
+)
+
 # Colors
 if [[ -n "${NO_COLOR:-}" ]]; then
   RED=''
@@ -168,12 +176,16 @@ function check_tor_status() {
   if nc -z -w3 127.0.0.1 9050; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
-    IP_CHECKERS=(
-      "https://ident.me"
-      "https://ifconfig.me/ip"
-      "https://icanhazip.com"
-      "https://checkip.amazonaws.com"
-    )
+    # Optimization: Parallelize Real IP fetch while checking Tor IP
+    # This reduces total wait time significantly.
+    local real_ip_tmp
+    real_ip_tmp=$(mktemp)
+
+    debug_log "Fetching real IP (background)"
+    (
+      curl -s --max-time 10 --noproxy '*' https://ident.me > "$real_ip_tmp"
+    ) &
+    local real_ip_pid=$!
 
     TOR_IP=""
     for url in "${IP_CHECKERS[@]}"; do
@@ -213,8 +225,10 @@ function check_tor_status() {
       echo "Tor IP: $TOR_IP"
     fi
 
-    debug_log "Fetching real IP without proxy"
-    REAL_IP=$(curl -s --max-time 10 --noproxy '*' https://ident.me)
+    # Retrieve background Real IP
+    wait "$real_ip_pid"
+    REAL_IP=$(cat "$real_ip_tmp")
+    rm -f "$real_ip_tmp"
     REAL_IP="${REAL_IP//[$'\r\n']/}"
     echo "Real IP: $REAL_IP"
 
@@ -254,7 +268,7 @@ function check_tor_status() {
 # Used after NEWNYM or one-time checks
 function monitor_once() {
   TOR_IP=""
-  for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
+  for url in "${IP_CHECKERS[@]}"; do
     TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
     TOR_IP="${TOR_IP//[$'\r\n']/}"
     [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
@@ -294,7 +308,7 @@ function monitor_loop() {
   PREV_IP=""
   while true; do
     TOR_IP=""
-    for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
+    for url in "${IP_CHECKERS[@]}"; do
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
       TOR_IP="${TOR_IP//[$'\r\n']/}"
       [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
