@@ -292,6 +292,8 @@ function monitor_once() {
 function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
   PREV_IP=""
+  LAST_MSG_WAS_UNCHANGED=0
+
   while true; do
     TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
@@ -303,20 +305,42 @@ function monitor_loop() {
 
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
+      # Always notify on error
+      echo -e "$MSG"
+      send_notification "$MSG"
+      LAST_MSG_WAS_UNCHANGED=0
     else
       REAL_IP=$(curl -s --noproxy '*' https://ident.me)
       REAL_IP="${REAL_IP//[$'\r\n']/}"
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
+        # Always print new changes on a new line
+        echo -e "$MSG"
+        send_notification "$MSG"
+        LAST_MSG_WAS_UNCHANGED=0
       else
-        MSG="ℹ️ Tor IP unchanged: $TOR_IP"
+        # Update timestamp to show liveness
+        printf -v time_str '%(%H:%M:%S)T' -1
+        MSG="ℹ️ Tor IP unchanged: $TOR_IP [checked at ${time_str}]"
+
+        # UX: Collapse repeated "unchanged" lines in interactive terminal
+        if [[ -t 1 ]]; then
+          if [[ $LAST_MSG_WAS_UNCHANGED -eq 1 ]]; then
+             echo -ne "\033[1A\033[K"
+          fi
+          echo -e "$MSG"
+          LAST_MSG_WAS_UNCHANGED=1
+        else
+          # Non-interactive mode: just print
+          echo -e "$MSG"
+        fi
+        # Skip notification for unchanged status to prevent spam
       fi
       PREV_IP="$TOR_IP"
       append_log "$TOR_IP" "$REAL_IP" "$MSG"
     fi
 
-    echo "$MSG"
-    send_notification "$MSG"
     sleep 60
   done
 }
@@ -538,7 +562,7 @@ function interactive_menu() {
     echo -e "  2) [s]tatus"
     echo -e "  3) Send [n]ewnym Signal"
     echo -e "  4) [e]nable Tor + NEWNYM"
-    echo -e "  5) Disable Tor + NEWNYM (o)"
+    echo -e "  5) Turn [o]ff Tor + NEWNYM"
     echo -e "  6) [r]estart Both Services"
     echo -e "  7) [c]heck if Traffic is via Tor"
     echo -e "  8) [m]onitor Tor IP (Live)"
