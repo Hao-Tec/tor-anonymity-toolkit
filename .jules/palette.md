@@ -15,3 +15,7 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+
+## 2025-02-18 - Reducing Notification Fatigue
+**Learning:** Constant "heartbeat" notifications (e.g., "Status: OK" every minute) are quickly ignored or disabled by users, rendering the notification channel useless for actual alerts.
+**Action:** Silence "unchanged" state notifications in monitoring loops. Only notify on state changes (diffs) or errors. Use in-place terminal updates (cursor manipulation) to show liveness instead.
