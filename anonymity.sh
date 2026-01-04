@@ -293,6 +293,11 @@ function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
   PREV_IP=""
   while true; do
+    # UX: Show "Checking..." state with in-place update
+    if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+        echo -ne "\r${CYAN}⏳ Checking Tor IP...${RESET}\033[K"
+    fi
+
     TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
@@ -301,22 +306,54 @@ function monitor_loop() {
       TOR_IP=""
     done
 
+    # Optimization: Use printf builtin (Bash 4.2+) for timestamp
+    printf -v time_str '%(%H:%M:%S)T' -1
+
     if [[ -z "$TOR_IP" ]]; then
-      MSG="⚠ Could not fetch Tor IP"
+      clean_msg="⚠ Could not fetch Tor IP"
+      MSG="${YELLOW}${clean_msg}${RESET} ($time_str)"
+
+      # Print errors with newline so they aren't missed
+      if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+           echo -e "\r${MSG}\033[K"
+      else
+           echo -e "$MSG"
+      fi
+      send_notification "$clean_msg"
     else
       REAL_IP=$(curl -s --noproxy '*' https://ident.me)
       REAL_IP="${REAL_IP//[$'\r\n']/}"
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
-        MSG="✅ Tor IP changed: $TOR_IP"
+        clean_msg="✅ Tor IP changed: $TOR_IP"
+        MSG="${GREEN}${clean_msg}${RESET} ($time_str)"
+
+        append_log "$TOR_IP" "$REAL_IP" "$clean_msg"
+        send_notification "$clean_msg"
+
+        # Print with newline (clearing previous line first)
+        if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+            echo -e "\r${MSG}\033[K"
+        else
+            echo -e "$MSG"
+        fi
       else
-        MSG="ℹ️ Tor IP unchanged: $TOR_IP"
+        clean_msg="ℹ️ Tor IP unchanged: $TOR_IP"
+        MSG="${CYAN}${clean_msg}${RESET} (Checked: $time_str)"
+
+        # UX: Print in-place to avoid scrollback spam
+        if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+             echo -ne "\r${MSG}\033[K"
+        else
+             echo -e "$MSG"
+        fi
+
+        append_log "$TOR_IP" "$REAL_IP" "$clean_msg"
+        send_notification "$clean_msg"
       fi
       PREV_IP="$TOR_IP"
-      append_log "$TOR_IP" "$REAL_IP" "$MSG"
     fi
 
-    echo "$MSG"
-    send_notification "$MSG"
     sleep 60
   done
 }
