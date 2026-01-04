@@ -15,3 +15,6 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+## 2026-01-04 - [Live Monitoring Feedback]
+**Learning:** Continuous monitoring tools that append lines for unchanged states create visual noise (scroll fatigue). Using carriage returns (\r) to update status in-place creates a "dashboard" feel that users find cleaner.
+**Action:** Use \r to overwrite lines for repetitive "unchanged" states, and only print newlines for significant state changes.
