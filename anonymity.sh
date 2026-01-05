@@ -293,6 +293,14 @@ function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
   PREV_IP=""
   while true; do
+    # UX: Add timestamp
+    printf -v TIME_NOW '%(%H:%M:%S)T' -1
+
+    # UX: Show "Checking..." state if interactive
+    if [[ -t 1 ]]; then
+       echo -ne "\r\033[K${CYAN}[$TIME_NOW] Checking...${RESET}"
+    fi
+
     TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
@@ -303,19 +311,36 @@ function monitor_loop() {
 
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
+      # Error: print normally
+      if [[ -t 1 ]]; then echo -ne "\r\033[K"; fi
+      echo -e "${RED}[$TIME_NOW] $MSG${RESET}"
     else
       REAL_IP=$(curl -s --noproxy '*' https://ident.me)
       REAL_IP="${REAL_IP//[$'\r\n']/}"
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
+        # UX: Change detected -> Permanent log (newline)
+        if [[ -t 1 ]]; then
+           echo -ne "\r\033[K"
+           echo -e "${GREEN}[$TIME_NOW] $MSG${RESET}"
+        else
+           echo "[$TIME_NOW] $MSG"
+        fi
       else
         MSG="ℹ️ Tor IP unchanged: $TOR_IP"
+        # UX: No change -> Transient update (overwrite line)
+        if [[ -t 1 ]]; then
+           echo -ne "\r\033[K"
+           echo -ne "${CYAN}[$TIME_NOW] $MSG${RESET}"
+        else
+           echo "[$TIME_NOW] $MSG"
+        fi
       fi
       PREV_IP="$TOR_IP"
       append_log "$TOR_IP" "$REAL_IP" "$MSG"
     fi
 
-    echo "$MSG"
     send_notification "$MSG"
     sleep 60
   done
