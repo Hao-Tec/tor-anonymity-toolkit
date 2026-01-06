@@ -529,22 +529,22 @@ function interactive_menu() {
     # Check for setup
     SERVICE_FILE="$HOME/.config/systemd/user/tor-newnym.service"
     if [[ ! -f "$SERVICE_FILE" ]]; then
-      echo -e "${YELLOW}  0) ⚡ Run First-Time Setup (Recommended)${RESET}"
+      echo -e "${YELLOW}   0) ⚡ Run First-Time Setup (Recommended)${RESET}"
     else
-      echo -e "  0) Re-run Setup"
+      echo -e "   0) Re-run Setup"
     fi
 
-    echo -e "${GREEN}  1) [t]oggle Tor + NEWNYM"
-    echo -e "  2) [s]tatus"
-    echo -e "  3) Send [n]ewnym Signal"
-    echo -e "  4) [e]nable Tor + NEWNYM"
-    echo -e "  5) Disable Tor + NEWNYM (o)"
-    echo -e "  6) [r]estart Both Services"
-    echo -e "  7) [c]heck if Traffic is via Tor"
-    echo -e "  8) [m]onitor Tor IP (Live)"
-    echo -e "  9) [d]ashboard"
-    echo -e " 10) [h]elp"
-    echo -e " 11) [q]uit"
+    echo -e "${GREEN}   1) [t]oggle Tor + NEWNYM"
+    echo -e "   2) [s]tatus"
+    echo -e "   3) [n]ewnym Signal (Send)"
+    echo -e "   4) [e]nable Tor + NEWNYM"
+    echo -e "   5) Turn [o]ff (Disable)"
+    echo -e "   6) [r]estart Both Services"
+    echo -e "   7) [c]heck Tor Connection"
+    echo -e "   8) [m]onitor Live IP"
+    echo -e "   9) [d]ashboard"
+    echo -e "  10) [h]elp"
+    echo -e "  11) [q]uit"
     echo
     echo -e "${CYAN}💡 ProTip:${RESET} Use keys (t, s, n...) for quick access."
     echo
