@@ -291,9 +291,16 @@ function monitor_once() {
 # Used for live monitoring when user runs './anonymity.sh monitor'
 function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
-  PREV_IP=""
+  local PREV_IP=""
+  local REAL_IP=""
+
   while true; do
-    TOR_IP=""
+    # UX: Show transient checking status in-place
+    if [[ -t 1 ]]; then
+       echo -ne "\r${CYAN}   Checking Tor IP...${RESET}\033[K"
+    fi
+
+    local TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
       TOR_IP="${TOR_IP//[$'\r\n']/}"
@@ -303,20 +310,41 @@ function monitor_loop() {
 
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
+      # Error on new line to preserve history
+      if [[ -t 1 ]]; then echo -ne "\r\033[K"; fi
+      echo -e "${RED}$MSG${RESET}"
+      send_notification "$MSG"
     else
-      REAL_IP=$(curl -s --noproxy '*' https://ident.me)
-      REAL_IP="${REAL_IP//[$'\r\n']/}"
+      # UX: Cache Real IP to minimize external calls
+      if [[ -z "$REAL_IP" ]]; then
+        REAL_IP=$(curl -s --noproxy '*' https://ident.me)
+        REAL_IP="${REAL_IP//[$'\r\n']/}"
+      fi
+
+      # Prepare timestamp for UI
+      printf -v current_time '%(%H:%M:%S)T' -1
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
+        # Ensure we break any previous in-place line (like "Checking...")
+        if [[ -t 1 ]]; then echo -ne "\r\033[K"; fi
+
         MSG="✅ Tor IP changed: $TOR_IP"
+        echo -e "${GREEN}$MSG${RESET}" # Force newline
+        send_notification "$MSG"
       else
         MSG="ℹ️ Tor IP unchanged: $TOR_IP"
+        # UX: In-place update with timestamp to show liveness
+        if [[ -t 1 ]]; then
+             echo -ne "\r${CYAN}$MSG ($current_time)${RESET}\033[K"
+        else
+             echo "$MSG"
+        fi
+        # Suppress notification for unchanged state
       fi
       PREV_IP="$TOR_IP"
       append_log "$TOR_IP" "$REAL_IP" "$MSG"
     fi
 
-    echo "$MSG"
-    send_notification "$MSG"
     sleep 60
   done
 }
