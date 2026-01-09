@@ -294,6 +294,9 @@ function monitor_loop() {
   PREV_IP=""
   while true; do
     TOR_IP=""
+    # Optimization: Use printf builtin (Bash 4.2+) for timestamp
+    printf -v timestamp '%(%H:%M:%S)T' -1
+
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
       TOR_IP="${TOR_IP//[$'\r\n']/}"
@@ -303,20 +306,31 @@ function monitor_loop() {
 
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
+      echo -e "\r${RED}$MSG${RESET}\033[K"
+      send_notification "$MSG"
     else
       REAL_IP=$(curl -s --noproxy '*' https://ident.me)
       REAL_IP="${REAL_IP//[$'\r\n']/}"
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
+        # Persistent output for changes
+        echo -e "\r${GREEN}$MSG${RESET}\033[K"
+        send_notification "$MSG"
       else
-        MSG="ℹ️ Tor IP unchanged: $TOR_IP"
+        MSG="ℹ️ Tor IP unchanged: $TOR_IP (Checked at $timestamp)"
+        # Transient output for unchanged status (prevents scroll spam)
+        if [[ -t 1 ]]; then
+             echo -ne "\r${CYAN}$MSG${RESET}\033[K"
+        else
+             echo "$MSG"
+        fi
       fi
+
       PREV_IP="$TOR_IP"
       append_log "$TOR_IP" "$REAL_IP" "$MSG"
     fi
 
-    echo "$MSG"
-    send_notification "$MSG"
     sleep 60
   done
 }

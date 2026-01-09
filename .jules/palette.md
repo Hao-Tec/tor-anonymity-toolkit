@@ -15,3 +15,6 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+## 2025-02-17 - Transient Status Updates
+**Learning:** Continuous polling loops (like connection monitors) often clutter the terminal with repetitive "nothing changed" messages, burying actual events. Using carriage returns (`\r`) to update status in-place creates a "heartbeat" effect that assures liveness without visual noise, while reserving new lines for significant state changes.
+**Action:** For monitoring loops, use `echo -ne "\rStatus..."` for stable states and `echo -e "\nEvent"` (or just a standard echo) for changes.
