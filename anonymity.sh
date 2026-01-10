@@ -290,7 +290,7 @@ function monitor_once() {
 
 # Used for live monitoring when user runs './anonymity.sh monitor'
 function monitor_loop() {
-  echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
+  echo -e "${CYAN}🔍 Live Tor IP Monitor. Press any key to stop...${RESET}"
   PREV_IP=""
   while true; do
     TOR_IP=""
@@ -317,7 +317,19 @@ function monitor_loop() {
 
     echo "$MSG"
     send_notification "$MSG"
-    sleep 60
+
+    # UX: Allow exiting by pressing any key instead of hard Ctrl+C kill
+    # Check if stdin is a terminal to prevent busy loops in non-interactive mode
+    if [[ -t 0 ]]; then
+        read -t 60 -n 1 -s -r key
+        if [[ $? -eq 0 ]]; then
+             echo -e "\n${YELLOW}Stopping monitor...${RESET}"
+             break
+        fi
+    else
+        # Fallback for background/cron jobs
+        sleep 60
+    fi
   done
 }
 
