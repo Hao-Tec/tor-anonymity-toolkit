@@ -15,3 +15,7 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+
+## 2025-05-27 - Interruptible Monitoring Loops
+**Learning:** Long-running monitoring loops that rely on `sleep` can trap users, forcing them to use `Ctrl+C` which may kill the entire application context (e.g. menu) instead of just the loop. Using `read -t <timeout>` allows for an interactive, interruptible "wait" that respects user agency.
+**Action:** Replace long `sleep` commands in interactive loops with `read -t <seconds> -n 1 -s -r` (checking `[[ -t 0 ]]`) to allow graceful exit on keypress.
