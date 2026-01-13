@@ -427,10 +427,20 @@ function newnym() {
   # Optimization: Use nc (netcat) instead of expect+telnet
   # This reduces overhead, startup time, and dependencies.
   (
+    # Sanitize password for Tor Control Protocol (quoted string)
+    # 1. Escape backslashes (must be done first)
+    local SAFE_PWD="${AUTH_PASSWORD//\\/\\\\}"
+    # 2. Escape double quotes
+    SAFE_PWD="${SAFE_PWD//\"/\\\"}"
+    # 3. Remove newlines/carriage returns to prevent protocol splitting
+    SAFE_PWD="${SAFE_PWD//$'\n'/}"
+    SAFE_PWD="${SAFE_PWD//$'\r'/}"
+
     # Send commands to Tor Control Port via netcat
     # -w 5 sets a 5 second timeout
     # Use CRLF (\r\n) as per Tor Control Protocol spec
-    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+    # Use printf to avoid echo -e interpreting the password
+    output=$(printf "AUTHENTICATE \"%s\"\r\nSIGNAL NEWNYM\r\nQUIT\r\n" "$SAFE_PWD" | nc -w 5 localhost $CONTROL_PORT 2>&1)
 
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
     # The output will contain multiple "250 OK" lines if successful.
