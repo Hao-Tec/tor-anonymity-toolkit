@@ -401,6 +401,17 @@ function enable_all() {
 }
 
 function disable_all() {
+  # UX: Confirm destructive action in interactive mode
+  if [[ -t 0 ]]; then
+    echo -e "${YELLOW}⚠️  You are about to disable anonymity services.${RESET}"
+    read -n 1 -p "Are you sure? [y/N] " confirm
+    echo
+    if [[ ! "$confirm" =~ ^[yY]$ ]]; then
+      echo -e "${RED}Aborted.${RESET}"
+      return
+    fi
+  fi
+
   echo -e "${CYAN}Disabling Tor and NEWNYM timer...${RESET}"
   # Optimization: Use disable --now
   sudo systemctl disable --now $TOR_SERVICE
@@ -538,7 +549,7 @@ function interactive_menu() {
     echo -e "  2) [s]tatus"
     echo -e "  3) Send [n]ewnym Signal"
     echo -e "  4) [e]nable Tor + NEWNYM"
-    echo -e "  5) Disable Tor + NEWNYM (o)"
+    echo -e "  5) Turn [o]ff Tor + NEWNYM"
     echo -e "  6) [r]estart Both Services"
     echo -e "  7) [c]heck if Traffic is via Tor"
     echo -e "  8) [m]onitor Tor IP (Live)"
