@@ -131,8 +131,9 @@ function debug_log() {
 function spinner() {
   local pid=$1
   local spinstr='|/-\'
-  # Hide cursor if tput is available
-  command -v tput &>/dev/null && tput civis
+  # Optimization: Use ANSI escape code directly to avoid spawning 'tput'
+  # \033[?25l hides the cursor. Only if connected to a terminal.
+  [[ -t 1 ]] && echo -ne "\033[?25l"
 
   while kill -0 "$pid" 2>/dev/null; do
     local temp=${spinstr#?}
@@ -144,7 +145,8 @@ function spinner() {
   printf "     \b\b\b\b\b"
 
   # Restore cursor
-  command -v tput &>/dev/null && tput cnorm
+  # \033[?25h shows the cursor. Only if connected to a terminal.
+  [[ -t 1 ]] && echo -ne "\033[?25h"
 }
 
 function check_dependencies() {
@@ -165,7 +167,9 @@ function check_dependencies() {
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
-  if nc -z -w3 127.0.0.1 9050; then
+  # Optimization: Use Bash built-in /dev/tcp check to avoid spawning 'nc' process
+  # This performs a TCP connect to localhost:9050.
+  if (echo > /dev/tcp/127.0.0.1/9050) 2>/dev/null; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
     IP_CHECKERS=(
