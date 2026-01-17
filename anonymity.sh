@@ -50,6 +50,14 @@ THEME="dark"
 EOF
   )
   echo -e "${GREEN}✅ Default config created. You can edit it at ~/.anonymity.conf${RESET}"
+else
+  # Security: Ensure existing config file has restricted permissions before sourcing
+  # This prevents privilege escalation if the file is world-writable
+  current_perms=$(stat -c "%a" "$CONFIG_FILE" 2>/dev/null)
+  if [[ "$current_perms" != "600" ]]; then
+    echo -e "${YELLOW}⚠ Insecure permissions detected on $CONFIG_FILE ($current_perms). Fixing...${RESET}"
+    chmod 600 "$CONFIG_FILE"
+  fi
 fi
 
 echo -e "${CYAN}🔧 Loading config from $CONFIG_FILE...${RESET}"
