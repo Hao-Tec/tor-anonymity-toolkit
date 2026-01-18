@@ -165,7 +165,9 @@ function check_dependencies() {
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
-  if nc -z -w3 127.0.0.1 9050; then
+  # Optimization: Use bash builtin /dev/tcp instead of spawning nc process
+  # This is faster and removes a dependency for this specific check.
+  if (: > /dev/tcp/127.0.0.1/9050) 2>/dev/null; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
     IP_CHECKERS=(
