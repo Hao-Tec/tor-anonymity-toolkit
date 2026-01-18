@@ -4,7 +4,7 @@
 TOR_SERVICE="tor.service"
 NEWNYM_TIMER="tor-newnym.timer"
 CONTROL_PORT=9051
-AUTH_PASSWORD="ACILAB"  # Change this to your actual control port password
+AUTH_PASSWORD=""  # Set this in your ~/.anonymity.conf
 TOR_SOCKS="127.0.0.1:9050"
 
 # Colors
@@ -23,7 +23,7 @@ else
 fi
 
 # Default Configuration (can be overridden by .anonymity.conf)
-AUTH_PASSWORD="${AUTH_PASSWORD:-ACILAB}"
+AUTH_PASSWORD="${AUTH_PASSWORD:-}"
 ENABLE_NOTIF="${ENABLE_NOTIF:-0}"  # Set to 1 to enable desktop notifications
 TOR_SOCKS="127.0.0.1:9050"
 LOGFILE="$HOME/.tor_anonymity.log"
@@ -40,7 +40,8 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
 # Configuration for anonymity.sh
 
 # Control port password for Tor (used in NEWNYM command)
-AUTH_PASSWORD="ACILAB"
+# AUTH_PASSWORD="your_password_here"
+AUTH_PASSWORD=""
 
 # Enable desktop notifications? (1 = yes, 0 = no)
 ENABLE_NOTIF=1
@@ -427,10 +428,23 @@ function newnym() {
   # Optimization: Use nc (netcat) instead of expect+telnet
   # This reduces overhead, startup time, and dependencies.
   (
+    # Prepare authentication command safely
+    if [[ -z "$AUTH_PASSWORD" ]]; then
+      # Try Cookie Authentication (no password)
+      CMD="AUTHENTICATE"
+    else
+      # Escape special characters for Tor Control Protocol QuotedString
+      local ESCAPED_PWD="${AUTH_PASSWORD//\\/\\\\}"
+      ESCAPED_PWD="${ESCAPED_PWD//\"/\\\"}"
+      ESCAPED_PWD="${ESCAPED_PWD//$'\n'/\\n}"
+      ESCAPED_PWD="${ESCAPED_PWD//$'\r'/\\r}"
+      CMD=$(printf "AUTHENTICATE \"%s\"" "$ESCAPED_PWD")
+    fi
+
     # Send commands to Tor Control Port via netcat
     # -w 5 sets a 5 second timeout
     # Use CRLF (\r\n) as per Tor Control Protocol spec
-    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+    output=$(printf "%s\r\nSIGNAL NEWNYM\r\nQUIT\r\n" "$CMD" | nc -w 5 localhost $CONTROL_PORT 2>&1)
 
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
     # The output will contain multiple "250 OK" lines if successful.
