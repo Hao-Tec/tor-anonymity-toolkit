@@ -7,3 +7,7 @@
 ## 2024-05-22 - Bash Performance
 **Learning:** `grep` is expensive for small string checks. Bash built-in `[[ string == *pattern* ]]` or regex `[[ string =~ regex ]]` is much faster as it avoids forking a new process.
 **Action:** Replace `echo "$var" | grep "pattern"` with `[[ "$var" == *"pattern"* ]]` whenever possible.
+
+## 2026-01-19 - Caching External IP Checks in Loops
+**Learning:** The `monitor_loop` was making redundant calls to `ident.me` (Real IP) every iteration (every 60s). Since the Real (ISP) IP rarely changes during a monitoring session, these calls were wasteful.
+**Action:** Cache slowly-changing external data in loops. Initialize the cache variable outside the loop and only fetch if the variable is empty.
