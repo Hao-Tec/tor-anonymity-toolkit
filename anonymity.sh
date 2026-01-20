@@ -538,7 +538,7 @@ function interactive_menu() {
     echo -e "  2) [s]tatus"
     echo -e "  3) Send [n]ewnym Signal"
     echo -e "  4) [e]nable Tor + NEWNYM"
-    echo -e "  5) Disable Tor + NEWNYM (o)"
+    echo -e "  5) Turn [o]ff (Disable)"
     echo -e "  6) [r]estart Both Services"
     echo -e "  7) [c]heck if Traffic is via Tor"
     echo -e "  8) [m]onitor Tor IP (Live)"
@@ -556,7 +556,15 @@ function interactive_menu() {
 	2|s|S) status ;;
 	3|n|N) newnym ;;
 	4|e|E) enable_all ;;
-	5|o|O) disable_all ;;
+	5|o|O)
+	  echo -ne "${RED}Are you sure you want to disable everything? [y/N]: ${RESET}"
+	  read -r confirm
+	  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+	    disable_all
+	  else
+	    echo -e "${YELLOW}Action cancelled.${RESET}"
+	  fi
+	  ;;
 	6|r|R) restart_all ;;
 	7|c|C) check_tor_status ;;
 	8|m|M) monitor_loop ;;
