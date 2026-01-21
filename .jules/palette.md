@@ -15,3 +15,7 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+
+## 2025-02-17 - [Destructive Action Safety]
+**Learning:** In terminal UIs, users often execute commands rapidly via muscle memory. Immediate execution of destructive actions (like disabling security services) without confirmation is a critical safety gap.
+**Action:** Guard all destructive or security-critical menu options with a specific confirmation prompt (e.g., `[y/N]`) that defaults to safe/cancel.
