@@ -15,3 +15,6 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+## 2025-05-27 - Semantic Mnemonic Alignment
+**Learning:** When a menu option's natural name (e.g. 'Disable') doesn't contain the desired mnemonic key (e.g. 'o' for off), rephrasing the label (e.g. to 'Turn [o]ff') is better than appending the key (e.g. 'Disable (o)'). This maintains the visual scan line of `[k]eyword`.
+**Action:** Rephrase menu items to embed the mnemonic key within the primary action verb or noun.
