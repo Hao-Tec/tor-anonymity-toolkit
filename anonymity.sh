@@ -162,10 +162,18 @@ function check_dependencies() {
   fi
 }
 
+function is_port_open() {
+  local host=$1
+  local port=$2
+  # Optimization: Use built-in /dev/tcp instead of spawning 'nc'
+  # This is faster (no fork) and removes dependency on nc for this check
+  { echo > /dev/tcp/$host/$port; } 2>/dev/null
+}
+
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
-  if nc -z -w3 127.0.0.1 9050; then
+  if is_port_open 127.0.0.1 9050; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
     IP_CHECKERS=(
@@ -293,6 +301,16 @@ function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
   PREV_IP=""
   while true; do
+    # Optimization: Fail fast if Tor proxy is not reachable locally
+    # Saves expensive curl calls and reduces system noise
+    if ! is_port_open 127.0.0.1 9050; then
+      MSG="⚠ Tor SOCKS proxy not reachable at 127.0.0.1:9050"
+      echo -e "${RED}$MSG${RESET}"
+      send_notification "$MSG"
+      sleep 60
+      continue
+    fi
+
     TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
