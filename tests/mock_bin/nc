@@ -1,0 +1,9 @@
+#!/bin/bash
+# Mock nc
+# Capture arguments
+echo "Args: $@" >> "$CAPTURE_FILE"
+# Capture stdin
+cat >> "$CAPTURE_FILE"
+# Return success 250 OK to simulate Tor Control
+echo "250 OK"
+echo "250 OK"
