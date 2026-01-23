@@ -165,7 +165,8 @@ function check_dependencies() {
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
-  if nc -z -w3 127.0.0.1 9050; then
+  # Optimization: Use Bash built-in for port check to avoid spawning 'nc'
+  if ( > /dev/tcp/127.0.0.1/9050 ) 2>/dev/null; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
     IP_CHECKERS=(
@@ -293,6 +294,15 @@ function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
   PREV_IP=""
   while true; do
+    # Optimization: Fail fast if Tor SOCKS is unreachable using Bash built-in
+    if ! ( > /dev/tcp/127.0.0.1/9050 ) 2>/dev/null; then
+      MSG="⚠ Tor SOCKS proxy unreachable at 127.0.0.1:9050"
+      echo -e "${RED}$MSG${RESET}"
+      send_notification "$MSG"
+      sleep 60
+      continue
+    fi
+
     TOR_IP=""
     for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
