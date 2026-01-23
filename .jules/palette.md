@@ -15,3 +15,6 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+## 2025-05-24 - Delightful Loaders
+**Learning:** Replacing standard ASCII spinners (`|/-\`) with Unicode Braille patterns (`⠋⠙...`) instantly modernizes a CLI tool's feel with minimal code change.
+**Action:** Default to Braille spinners in environments where UTF-8 is supported.

@@ -130,18 +130,20 @@ function debug_log() {
 
 function spinner() {
   local pid=$1
-  local spinstr='|/-\'
+  local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
   # Hide cursor if tput is available
   command -v tput &>/dev/null && tput civis
 
   while kill -0 "$pid" 2>/dev/null; do
+    local first_char="${spinstr:0:1}"
+    printf " %s " "$first_char"
+
     local temp=${spinstr#?}
-    printf " [%c] " "$spinstr"
-    local spinstr=$temp${spinstr%"$temp"}
+    spinstr=$temp${spinstr%"$temp"}
     sleep 0.1
-    printf "\b\b\b\b\b"
+    printf "\b\b\b"
   done
-  printf "     \b\b\b\b\b"
+  printf "   \b\b\b"
 
   # Restore cursor
   command -v tput &>/dev/null && tput cnorm
@@ -538,7 +540,7 @@ function interactive_menu() {
     echo -e "  2) [s]tatus"
     echo -e "  3) Send [n]ewnym Signal"
     echo -e "  4) [e]nable Tor + NEWNYM"
-    echo -e "  5) Disable Tor + NEWNYM (o)"
+    echo -e "  5) Turn [o]ff Tor + NEWNYM"
     echo -e "  6) [r]estart Both Services"
     echo -e "  7) [c]heck if Traffic is via Tor"
     echo -e "  8) [m]onitor Tor IP (Live)"
