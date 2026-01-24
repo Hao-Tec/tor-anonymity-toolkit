@@ -15,3 +15,7 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+
+## 2025-10-26 - CLI Destructive Actions
+**Learning:** For critical CLI menu actions (like disabling security), standardizing on a `[y/N]` confirmation prompt prevents accidental keypresses.
+**Action:** Always wrap destructive interactive menu options with a `read -r confirm` check before execution.
