@@ -7,3 +7,7 @@
 ## 2024-05-22 - Bash Performance
 **Learning:** `grep` is expensive for small string checks. Bash built-in `[[ string == *pattern* ]]` or regex `[[ string =~ regex ]]` is much faster as it avoids forking a new process.
 **Action:** Replace `echo "$var" | grep "pattern"` with `[[ "$var" == *"pattern"* ]]` whenever possible.
+
+## 2025-05-22 - Fast Fail Network Checks
+**Learning:** Checking local port availability via `/dev/tcp` before attempting external requests (like `curl`) prevents long timeouts when the service is down. This is especially critical for loops or monitoring tools.
+**Action:** Always wrap external dependency calls with a cheap local readiness check if possible.

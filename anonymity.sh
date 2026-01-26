@@ -165,7 +165,8 @@ function check_dependencies() {
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
-  if nc -z -w3 127.0.0.1 9050; then
+  # Optimization: Use bash built-in TCP check (faster than spawning nc)
+  if ( > /dev/tcp/127.0.0.1/9050 ) 2>/dev/null; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
     IP_CHECKERS=(
@@ -254,12 +255,15 @@ function check_tor_status() {
 # Used after NEWNYM or one-time checks
 function monitor_once() {
   TOR_IP=""
-  for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
-    TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
-    TOR_IP="${TOR_IP//[$'\r\n']/}"
-    [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
-    TOR_IP=""
-  done
+  # Optimization: Fail fast if Tor port is closed, avoiding multiple curl timeouts
+  if ( > /dev/tcp/127.0.0.1/9050 ) 2>/dev/null; then
+    for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
+      TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
+      TOR_IP="${TOR_IP//[$'\r\n']/}"
+      [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
+      TOR_IP=""
+    done
+  fi
 
   if [[ -z "$TOR_IP" ]]; then
     MSG="⚠ Could not fetch Tor IP after NEWNYM"
@@ -294,12 +298,15 @@ function monitor_loop() {
   PREV_IP=""
   while true; do
     TOR_IP=""
-    for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
-      TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
-      TOR_IP="${TOR_IP//[$'\r\n']/}"
-      [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
-      TOR_IP=""
-    done
+    # Optimization: Fail fast if Tor port is closed, avoiding multiple curl timeouts
+    if ( > /dev/tcp/127.0.0.1/9050 ) 2>/dev/null; then
+      for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
+        TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
+        TOR_IP="${TOR_IP//[$'\r\n']/}"
+        [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
+        TOR_IP=""
+      done
+    fi
 
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
