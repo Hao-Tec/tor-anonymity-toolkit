@@ -1,0 +1,6 @@
+#!/bin/bash
+# Mock nc
+# Capture stdin to file in the current directory
+cat > nc_input.log
+# Simulate Tor Control Protocol response
+echo -e "250 OK\r\n250 OK"
