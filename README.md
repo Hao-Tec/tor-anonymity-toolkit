@@ -137,7 +137,7 @@ To change it:
 Install required packages:
 
 ```bash
-sudo apt install tor curl nc expect telnet systemd notify-osd
+sudo apt install tor curl systemd notify-osd
 ```
 
 > ⚠️ For full functionality, make sure `tor` is properly installed and your system supports `systemctl --user`.
