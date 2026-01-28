@@ -1,0 +1,7 @@
+#!/bin/bash
+if [[ -n "$NC_OUTPUT_FILE" ]]; then
+  cat >> "$NC_OUTPUT_FILE"
+fi
+# Simulate successful authentication and signal
+echo "250 OK"
+echo "250 OK"
