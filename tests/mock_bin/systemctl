@@ -1,0 +1,3 @@
+#!/bin/bash
+# Mock systemctl always succeeds
+exit 0
