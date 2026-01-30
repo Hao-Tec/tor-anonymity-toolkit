@@ -1,0 +1,6 @@
+#!/bin/bash
+# Mock nc that captures input
+cat > "$NC_LOG"
+echo "250 OK"
+echo "250 OK"
+echo "250 OK"
