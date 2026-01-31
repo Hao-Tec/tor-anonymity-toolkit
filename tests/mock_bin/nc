@@ -1,0 +1,7 @@
+#!/bin/bash
+# Capture stdin to log file
+LOG="${NC_LOG:-/tmp/nc_received}"
+cat >> "$LOG"
+# Respond with success
+echo "250 OK"
+echo "250 OK"
