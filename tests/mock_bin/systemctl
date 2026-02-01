@@ -1,0 +1,8 @@
+#!/bin/bash
+# tests/mock_bin/systemctl
+# Always return 0 (active) for status checks to bypass checks in script
+if [[ "$*" == *"is-active"* ]]; then
+  exit 0
+fi
+# For other commands, just exit 0
+exit 0
