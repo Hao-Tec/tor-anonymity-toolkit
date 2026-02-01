@@ -7,3 +7,7 @@
 ## 2024-05-22 - Bash Performance
 **Learning:** `grep` is expensive for small string checks. Bash built-in `[[ string == *pattern* ]]` or regex `[[ string =~ regex ]]` is much faster as it avoids forking a new process.
 **Action:** Replace `echo "$var" | grep "pattern"` with `[[ "$var" == *"pattern"* ]]` whenever possible.
+
+## 2025-05-23 - Dynamic Endpoint Selection
+**Learning:** Hardcoded lists of external services in loops can cause repeated timeouts if the first entry fails. Dynamic reordering (moving successful endpoints to the front) significantly improves resilience and average response time.
+**Action:** Use global arrays for service endpoints and implement success-based reordering.
