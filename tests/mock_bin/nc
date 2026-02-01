@@ -1,0 +1,6 @@
+#!/bin/bash
+# Capture stdin to a log file for inspection
+cat > "$PWD/tests/nc_input.log"
+# Simulate Tor control port response
+echo "250 OK"
+echo "250 OK"
