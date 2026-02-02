@@ -1,0 +1,14 @@
+#!/bin/bash
+url="${@: -1}"
+# Check based on default order: ident.me is first, ifconfig.me/ip is second
+if [[ "$url" == *"ident.me"* ]]; then
+  # Simulate failure/timeout
+  echo ""
+  exit 1
+elif [[ "$url" == *"ifconfig.me/ip"* ]]; then
+  echo "1.2.3.4"
+  exit 0
+else
+  echo ""
+  exit 1
+fi
