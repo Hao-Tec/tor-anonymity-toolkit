@@ -7,3 +7,7 @@
 ## 2024-05-22 - Bash Performance
 **Learning:** `grep` is expensive for small string checks. Bash built-in `[[ string == *pattern* ]]` or regex `[[ string =~ regex ]]` is much faster as it avoids forking a new process.
 **Action:** Replace `echo "$var" | grep "pattern"` with `[[ "$var" == *"pattern"* ]]` whenever possible.
+
+## 2024-05-22 - Adaptive Resource Selection
+**Learning:** Hardcoded lists of external services (like IP checkers) can cause consistent latency if the first item is slow/down.
+**Action:** Use a dynamic global array that promotes successful services to the front ("swap-to-front") to optimize for the currently fastest provider.
