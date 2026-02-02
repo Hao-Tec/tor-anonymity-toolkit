@@ -4,7 +4,6 @@
 TOR_SERVICE="tor.service"
 NEWNYM_TIMER="tor-newnym.timer"
 CONTROL_PORT=9051
-AUTH_PASSWORD="ACILAB"  # Change this to your actual control port password
 TOR_SOCKS="127.0.0.1:9050"
 
 # Colors
@@ -23,7 +22,7 @@ else
 fi
 
 # Default Configuration (can be overridden by .anonymity.conf)
-AUTH_PASSWORD="${AUTH_PASSWORD:-ACILAB}"
+AUTH_PASSWORD="${AUTH_PASSWORD:-CHANGE_ME}"
 ENABLE_NOTIF="${ENABLE_NOTIF:-0}"  # Set to 1 to enable desktop notifications
 TOR_SOCKS="127.0.0.1:9050"
 LOGFILE="$HOME/.tor_anonymity.log"
@@ -40,7 +39,7 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
 # Configuration for anonymity.sh
 
 # Control port password for Tor (used in NEWNYM command)
-AUTH_PASSWORD="ACILAB"
+AUTH_PASSWORD="CHANGE_ME"
 
 # Enable desktop notifications? (1 = yes, 0 = no)
 ENABLE_NOTIF=1
@@ -54,6 +53,14 @@ fi
 
 echo -e "${CYAN}🔧 Loading config from $CONFIG_FILE...${RESET}"
 source "$CONFIG_FILE"
+
+# Security Check: Ensure password is changed
+if [[ "$AUTH_PASSWORD" == "CHANGE_ME" || "$AUTH_PASSWORD" == "ACILAB" ]]; then
+  echo -e "${RED}🚨 SECURITY WARNING: You are using the default or insecure Tor Control Password.${RESET}"
+  echo -e "${YELLOW}Please edit $CONFIG_FILE and set AUTH_PASSWORD to your actual Tor HashedControlPassword.${RESET}"
+  echo -e "${YELLOW}Example: AUTH_PASSWORD=\"MySecretPass\"${RESET}"
+  exit 1
+fi
 
 # Runtime overrides (e.g., --debug, --theme=dark)
 for arg in "$@"; do
@@ -430,7 +437,14 @@ function newnym() {
     # Send commands to Tor Control Port via netcat
     # -w 5 sets a 5 second timeout
     # Use CRLF (\r\n) as per Tor Control Protocol spec
-    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+
+    # Security: Escape password to prevent protocol injection
+    escaped_pass="${AUTH_PASSWORD//\\/\\\\}"
+    escaped_pass="${escaped_pass//\"/\\\"}"
+    escaped_pass="${escaped_pass//$'\r'/}"  # Remove CR
+    escaped_pass="${escaped_pass//$'\n'/}"  # Remove LF
+
+    output=$(printf "AUTHENTICATE \"%s\"\r\nSIGNAL NEWNYM\r\nQUIT\r\n" "$escaped_pass" | nc -w 5 localhost $CONTROL_PORT 2>&1)
 
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
     # The output will contain multiple "250 OK" lines if successful.
