@@ -7,3 +7,7 @@
 ## 2024-05-22 - Bash Performance
 **Learning:** `grep` is expensive for small string checks. Bash built-in `[[ string == *pattern* ]]` or regex `[[ string =~ regex ]]` is much faster as it avoids forking a new process.
 **Action:** Replace `echo "$var" | grep "pattern"` with `[[ "$var" == *"pattern"* ]]` whenever possible.
+
+## 2025-05-23 - Adaptive IP Checker Selection
+**Learning:** Bash global arrays can serve as session-persistent "caches" for optimization. By dynamically reordering a list based on success/failure (swapping the winner to index 0), we can eliminate repeated timeouts in loop-based monitoring tools without complex state management.
+**Action:** Use self-optimizing lists for resource polling where availability varies.
