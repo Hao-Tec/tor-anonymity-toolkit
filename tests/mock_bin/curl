@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "MOCK CURL: $@"
+exit 0
