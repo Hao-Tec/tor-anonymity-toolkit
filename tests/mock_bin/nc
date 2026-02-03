@@ -1,0 +1,8 @@
+#!/bin/bash
+# Mock nc
+# Log arguments and stdin to a file
+echo "Args: $@" >> "$PWD/nc.log"
+cat >> "$PWD/nc.log"
+# Return success (250 OK) to satisfy the script
+echo "250 OK"
+echo "250 OK"
