@@ -7,6 +7,24 @@ CONTROL_PORT=9051
 AUTH_PASSWORD="ACILAB"  # Change this to your actual control port password
 TOR_SOCKS="127.0.0.1:9050"
 
+# Global IP Checkers List (Dynamic prioritization)
+IP_CHECKERS=(
+  "https://ident.me"
+  "https://ifconfig.me/ip"
+  "https://icanhazip.com"
+  "https://checkip.amazonaws.com"
+)
+
+function promote_checker() {
+  local idx=$1
+  if [[ $idx -gt 0 ]]; then
+    local temp="${IP_CHECKERS[0]}"
+    IP_CHECKERS[0]="${IP_CHECKERS[$idx]}"
+    IP_CHECKERS[$idx]="$temp"
+    debug_log "Optimization: Swapped priority of checker at index $idx to top"
+  fi
+}
+
 # Colors
 if [[ -n "${NO_COLOR:-}" ]]; then
   RED=''
@@ -168,15 +186,9 @@ function check_tor_status() {
   if nc -z -w3 127.0.0.1 9050; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
-    IP_CHECKERS=(
-      "https://ident.me"
-      "https://ifconfig.me/ip"
-      "https://icanhazip.com"
-      "https://checkip.amazonaws.com"
-    )
-
     TOR_IP=""
-    for url in "${IP_CHECKERS[@]}"; do
+    for i in "${!IP_CHECKERS[@]}"; do
+      url="${IP_CHECKERS[$i]}"
       # Extract hostname for UX feedback
       host="${url#*://}"
       host="${host%%/*}"
@@ -195,6 +207,9 @@ function check_tor_status() {
         if [[ -t 1 && $DEBUG_MODE -ne 1 ]]; then
            echo -ne "\r\033[K"
         fi
+
+        # Optimization: Move successful checker to front for future speed
+        promote_checker "$i"
         break
       else
         debug_log "Failed from $url or invalid IP: '$TOR_IP'"
@@ -254,10 +269,15 @@ function check_tor_status() {
 # Used after NEWNYM or one-time checks
 function monitor_once() {
   TOR_IP=""
-  for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
+  for i in "${!IP_CHECKERS[@]}"; do
+    url="${IP_CHECKERS[$i]}"
     TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
     TOR_IP="${TOR_IP//[$'\r\n']/}"
-    [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
+    if [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      # Optimization: Move successful checker to front
+      promote_checker "$i"
+      break
+    fi
     TOR_IP=""
   done
 
@@ -294,10 +314,15 @@ function monitor_loop() {
   PREV_IP=""
   while true; do
     TOR_IP=""
-    for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
+    for i in "${!IP_CHECKERS[@]}"; do
+      url="${IP_CHECKERS[$i]}"
       TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
       TOR_IP="${TOR_IP//[$'\r\n']/}"
-      [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
+      if [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        # Optimization: Move successful checker to front
+        promote_checker "$i"
+        break
+      fi
       TOR_IP=""
     done
 
