@@ -1,0 +1,6 @@
+#!/bin/bash
+# Mock systemctl that always returns true for is-active
+if [[ "$1" == "is-active" ]]; then
+  exit 0
+fi
+exit 0
