@@ -15,3 +15,6 @@
 ## 2025-02-17 - Reducing Friction in CLI Navigation
 **Learning:** Requiring "Enter" to continue flow is a minor friction point that adds up. "Press any key" feels significantly snappier and more responsive for simple acknowledgments.
 **Action:** Use `read -n 1 -s -r` for pause/continue prompts instead of standard `read`.
+## 2025-05-27 - [Safety Confirmations in CLI]
+**Learning:** Destructive actions in CLI tools often lack the "undo" buffer of GUI apps. Users can accidentally trigger them with a single keystroke (especially when using mnemonics). A simple `[y/N]` confirmation step for high-impact actions (like disabling anonymity) prevents critical errors without adding significant friction.
+**Action:** Always wrap destructive CLI operations in a confirmation prompt, defaulting to "No" (safe option).
