@@ -23,11 +23,11 @@ if [[ -n "${NO_COLOR:-}" ]]; then
   YELLOW=''
   RESET=''
 else
-  RED='\033[0;31m'
-  GREEN='\033[0;32m'
-  CYAN='\033[0;36m'
-  YELLOW='\033[1;33m'
-  RESET='\033[0m'
+  RED=$'\e[0;31m'
+  GREEN=$'\e[0;32m'
+  CYAN=$'\e[0;36m'
+  YELLOW=$'\e[1;33m'
+  RESET=$'\e[0m'
 fi
 
 # Default Configuration (can be overridden by .anonymity.conf)
@@ -77,17 +77,17 @@ if [[ -n "${NO_COLOR:-}" ]]; then
   # NO_COLOR set, keep colors disabled
   :
 elif [[ "$THEME" == "light" ]]; then
-  RED='\033[0;31m'
-  GREEN='\033[0;32m'
-  CYAN='\033[0;36m'
-  YELLOW='\033[0;33m'
-  RESET='\033[0m'
+  RED=$'\e[0;31m'
+  GREEN=$'\e[0;32m'
+  CYAN=$'\e[0;36m'
+  YELLOW=$'\e[0;33m'
+  RESET=$'\e[0m'
 else
-  RED='\033[1;31m'
-  GREEN='\033[1;32m'
-  CYAN='\033[1;36m'
-  YELLOW='\033[1;33m'
-  RESET='\033[0m'
+  RED=$'\e[1;31m'
+  GREEN=$'\e[1;32m'
+  CYAN=$'\e[1;36m'
+  YELLOW=$'\e[1;33m'
+  RESET=$'\e[0m'
 fi
 
 # Ensure user systemd is running (for desktop session)
@@ -140,7 +140,8 @@ function spinner() {
   local pid=$1
   local spinstr='|/-\'
   # Hide cursor if tput is available
-  command -v tput &>/dev/null && tput civis
+  # Optimization: Use ANSI escape code directly to avoid spawning tput
+  printf '\033[?25l'
 
   while kill -0 "$pid" 2>/dev/null; do
     local temp=${spinstr#?}
@@ -152,7 +153,8 @@ function spinner() {
   printf "     \b\b\b\b\b"
 
   # Restore cursor
-  command -v tput &>/dev/null && tput cnorm
+  # Optimization: Use ANSI escape code directly to avoid spawning tput
+  printf '\033[?25h'
 }
 
 function promote_checker() {
@@ -560,7 +562,7 @@ function interactive_menu() {
     echo
     echo -e "${CYAN}💡 ProTip:${RESET} Use keys (t, s, n...) for quick access."
     echo
-    read -p "$(echo -e "${YELLOW}Choose option [0-11] or 'q' to quit: ${RESET}")" choice
+    read -p "${YELLOW}Choose option [0-11] or 'q' to quit: ${RESET}" choice
 
     case $choice in
     0) setup_systemd_files ;;
