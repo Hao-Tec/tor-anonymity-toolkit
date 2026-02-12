@@ -7,6 +7,14 @@ CONTROL_PORT=9051
 AUTH_PASSWORD="ACILAB"  # Change this to your actual control port password
 TOR_SOCKS="127.0.0.1:9050"
 
+# List of IP checking services (dynamic order)
+IP_CHECKERS=(
+  "https://ident.me"
+  "https://ifconfig.me/ip"
+  "https://icanhazip.com"
+  "https://checkip.amazonaws.com"
+)
+
 # Colors
 if [[ -n "${NO_COLOR:-}" ]]; then
   RED=''
@@ -147,6 +155,56 @@ function spinner() {
   command -v tput &>/dev/null && tput cnorm
 }
 
+function promote_checker() {
+  local successful_url="$1"
+  local new_array=("$successful_url")
+  for url in "${IP_CHECKERS[@]}"; do
+    [[ "$url" != "$successful_url" ]] && new_array+=("$url")
+  done
+  IP_CHECKERS=("${new_array[@]}")
+}
+
+function get_tor_ip() {
+  local verbose="${1:-0}" # 1 for verbose (interactive), 0 for silent
+  local found_ip=""
+  FOUND_IP=""
+
+  for url in "${IP_CHECKERS[@]}"; do
+      # Extract hostname for UX feedback
+      host="${url#*://}"
+      host="${host%%/*}"
+
+      if [[ $verbose -eq 1 && -t 1 && $DEBUG_MODE -ne 1 ]]; then
+         echo -ne "\r${CYAN}   Trying $host...${RESET}\033[K" >&2
+      fi
+
+      debug_log "Trying IP checker: $url"
+      found_ip=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
+      found_ip="${found_ip//[$'\r\n']/}"
+
+      if [[ $found_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        debug_log "Success from $url: $found_ip"
+        if [[ $verbose -eq 1 && -t 1 && $DEBUG_MODE -ne 1 ]]; then
+           echo -ne "\r\033[K" >&2
+        fi
+
+        # Optimization: Move successful checker to front for next time
+        promote_checker "$url"
+
+        FOUND_IP="$found_ip"
+        return 0
+      else
+        debug_log "Failed from $url or invalid IP: '$found_ip'"
+      fi
+  done
+
+  if [[ $verbose -eq 1 && -t 1 && $DEBUG_MODE -ne 1 ]]; then
+       echo -ne "\r\033[K" >&2
+  fi
+
+  return 1
+}
+
 function check_dependencies() {
   local missing=0
   # Optimization: Removed expect and telnet dependencies as they are no longer needed
@@ -168,44 +226,8 @@ function check_tor_status() {
   if nc -z -w3 127.0.0.1 9050; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
-    IP_CHECKERS=(
-      "https://ident.me"
-      "https://ifconfig.me/ip"
-      "https://icanhazip.com"
-      "https://checkip.amazonaws.com"
-    )
-
-    TOR_IP=""
-    for url in "${IP_CHECKERS[@]}"; do
-      # Extract hostname for UX feedback
-      host="${url#*://}"
-      host="${host%%/*}"
-
-      # UX: Show progress (only in interactive mode and not debugging)
-      if [[ -t 1 && $DEBUG_MODE -ne 1 ]]; then
-         echo -ne "\r${CYAN}   Trying $host...${RESET}\033[K"
-      fi
-
-      debug_log "Trying IP checker: $url"
-      TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
-      TOR_IP="${TOR_IP//[$'\r\n']/}"
-      if [[ $TOR_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        debug_log "Success from $url: $TOR_IP"
-        # UX: Clear the 'Trying...' line on success
-        if [[ -t 1 && $DEBUG_MODE -ne 1 ]]; then
-           echo -ne "\r\033[K"
-        fi
-        break
-      else
-        debug_log "Failed from $url or invalid IP: '$TOR_IP'"
-        TOR_IP=""
-      fi
-    done
-
-    # UX: Clear any stuck "Trying..." line if all failed
-    if [[ -t 1 && $DEBUG_MODE -ne 1 ]]; then
-       echo -ne "\r\033[K"
-    fi
+    get_tor_ip 1
+    TOR_IP="$FOUND_IP"
 
     if [[ -z $TOR_IP ]]; then
       echo -e "${YELLOW}⚠ Could not fetch a valid Tor IP. All checkers failed or timed out.${RESET}"
@@ -253,13 +275,8 @@ function check_tor_status() {
 
 # Used after NEWNYM or one-time checks
 function monitor_once() {
-  TOR_IP=""
-  for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
-    TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
-    TOR_IP="${TOR_IP//[$'\r\n']/}"
-    [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
-    TOR_IP=""
-  done
+  get_tor_ip 0
+  TOR_IP="$FOUND_IP"
 
   if [[ -z "$TOR_IP" ]]; then
     MSG="⚠ Could not fetch Tor IP after NEWNYM"
@@ -293,13 +310,8 @@ function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
   PREV_IP=""
   while true; do
-    TOR_IP=""
-    for url in "https://ident.me" "https://ifconfig.me/ip" "https://icanhazip.com"; do
-      TOR_IP=$(curl --socks5-hostname 127.0.0.1:9050 -s --max-time 10 "$url")
-      TOR_IP="${TOR_IP//[$'\r\n']/}"
-      [[ "$TOR_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && break
-      TOR_IP=""
-    done
+    get_tor_ip 0
+    TOR_IP="$FOUND_IP"
 
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
