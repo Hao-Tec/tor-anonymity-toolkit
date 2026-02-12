@@ -7,3 +7,7 @@
 ## 2024-05-22 - Bash Performance
 **Learning:** `grep` is expensive for small string checks. Bash built-in `[[ string == *pattern* ]]` or regex `[[ string =~ regex ]]` is much faster as it avoids forking a new process.
 **Action:** Replace `echo "$var" | grep "pattern"` with `[[ "$var" == *"pattern"* ]]` whenever possible.
+
+## 2026-01-28 - Port Check Performance
+**Learning:** `nc -z` forks a new process, which adds overhead to frequent checks. Bash built-in `/dev/tcp` redirection `( >/dev/tcp/host/port )` is significantly faster and removes the runtime dependency on `netcat` for port checking.
+**Action:** Prefer `/dev/tcp` over `nc -z` for simple port availability checks in Bash scripts.
