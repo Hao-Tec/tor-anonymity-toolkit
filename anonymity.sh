@@ -4,7 +4,7 @@
 TOR_SERVICE="tor.service"
 NEWNYM_TIMER="tor-newnym.timer"
 CONTROL_PORT=9051
-AUTH_PASSWORD="ACILAB"  # Change this to your actual control port password
+# AUTH_PASSWORD intentionally not set by default to avoid hardcoded secrets
 TOR_SOCKS="127.0.0.1:9050"
 
 # List of IP checking services (dynamic order)
@@ -31,7 +31,6 @@ else
 fi
 
 # Default Configuration (can be overridden by .anonymity.conf)
-AUTH_PASSWORD="${AUTH_PASSWORD:-ACILAB}"
 ENABLE_NOTIF="${ENABLE_NOTIF:-0}"  # Set to 1 to enable desktop notifications
 TOR_SOCKS="127.0.0.1:9050"
 LOGFILE="$HOME/.tor_anonymity.log"
@@ -41,6 +40,19 @@ CONFIG_FILE="$HOME/.anonymity.conf"
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo -e "${YELLOW}⚠ No config file found. Creating default ~/.anonymity.conf...${RESET}"
 
+  # Security: Prompt for password if interactive, otherwise use placeholder
+  if [[ -t 0 ]]; then
+    read -sp "$(echo -e "${YELLOW}Enter your Tor Control Port password (default: ACILAB): ${RESET}")" INPUT_PASS
+    echo
+    if [[ -z "$INPUT_PASS" ]]; then
+       INPUT_PASS="ACILAB"
+       echo -e "${YELLOW}Using default password 'ACILAB'. Please ensure your torrc matches or edit ~/.anonymity.conf${RESET}"
+    fi
+  else
+    INPUT_PASS="CHANGE_ME"
+    echo -e "${YELLOW}Non-interactive mode detected. Setting password to 'CHANGE_ME'. Please edit ~/.anonymity.conf${RESET}"
+  fi
+
   # Security: Create file with restricted permissions atomically using umask
   (
     umask 077
@@ -48,7 +60,7 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
 # Configuration for anonymity.sh
 
 # Control port password for Tor (used in NEWNYM command)
-AUTH_PASSWORD="ACILAB"
+AUTH_PASSWORD="$INPUT_PASS"
 
 # Enable desktop notifications? (1 = yes, 0 = no)
 ENABLE_NOTIF=1
@@ -62,6 +74,12 @@ fi
 
 echo -e "${CYAN}🔧 Loading config from $CONFIG_FILE...${RESET}"
 source "$CONFIG_FILE"
+
+# Security: Warn if password is not set properly
+if [[ "$AUTH_PASSWORD" == "CHANGE_ME" ]]; then
+  echo -e "${RED}⚠ Security Warning: AUTH_PASSWORD is set to 'CHANGE_ME'.${RESET}"
+  echo -e "${RED}Please edit $CONFIG_FILE and set your actual Tor Control Port password.${RESET}"
+fi
 
 # Runtime overrides (e.g., --debug, --theme=dark)
 for arg in "$@"; do
