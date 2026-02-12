@@ -208,7 +208,8 @@ function get_tor_ip() {
 function check_dependencies() {
   local missing=0
   # Optimization: Removed expect and telnet dependencies as they are no longer needed
-  for cmd in systemctl curl nc; do
+  # Optimization: Removed nc dependency by using bash built-in /dev/tcp
+  for cmd in systemctl curl; do
     if ! command -v $cmd &>/dev/null; then
       echo -e "${RED}Error: Required command '$cmd' is not installed.${RESET}"
       echo -e "Please install it using: ${YELLOW}sudo apt install $cmd${RESET}"
@@ -223,7 +224,8 @@ function check_dependencies() {
 function check_tor_status() {
   echo -e "${CYAN}Checking if Tor traffic is active...${RESET}"
 
-  if nc -z -w3 127.0.0.1 9050; then
+  # Optimization: Use bash built-in TCP check instead of nc -z
+  if ( > /dev/tcp/127.0.0.1/9050 ) 2>/dev/null; then
     echo "Tor SOCKS proxy is reachable at $TOR_SOCKS"
 
     get_tor_ip 1
@@ -436,13 +438,29 @@ function newnym() {
 
   echo -ne "${CYAN}Sending NEWNYM signal to Tor...${RESET}"
 
-  # Optimization: Use nc (netcat) instead of expect+telnet
+  # Optimization: Use bash built-in TCP instead of nc (netcat)
   # This reduces overhead, startup time, and dependencies.
   (
-    # Send commands to Tor Control Port via netcat
-    # -w 5 sets a 5 second timeout
-    # Use CRLF (\r\n) as per Tor Control Protocol spec
-    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+    # Send commands to Tor Control Port via /dev/tcp
+    # Use 127.0.0.1 explicitly to avoid DNS lookup for localhost
+    if ! exec 3<>/dev/tcp/127.0.0.1/$CONTROL_PORT; then
+      echo "Failed to connect to Tor Control Port" >&2
+      exit 1
+    fi
+
+    # Use printf for safe string formatting (prevents injection if password has quotes)
+    printf "AUTHENTICATE \"%s\"\r\n" "$AUTH_PASSWORD" >&3
+    printf "SIGNAL NEWNYM\r\n" >&3
+    printf "QUIT\r\n" >&3
+
+    # Read response
+    # Use timeout to prevent hanging if Tor doesn't close connection (default 5s)
+    if command -v timeout &>/dev/null; then
+      output=$(timeout 5 cat <&3)
+    else
+      output=$(cat <&3)
+    fi
+    exec 3>&-
 
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
     # The output will contain multiple "250 OK" lines if successful.
