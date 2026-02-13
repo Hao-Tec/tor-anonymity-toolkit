@@ -315,20 +315,30 @@ function monitor_loop() {
 
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
+      echo -e "\n$MSG"
+      send_notification "$MSG"
     else
       REAL_IP=$(curl -s --noproxy '*' https://ident.me)
       REAL_IP="${REAL_IP//[$'\r\n']/}"
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
+        # UX: Print on new line if changed, notify user
+        echo -e "\n$MSG"
+        send_notification "$MSG"
       else
         MSG="ℹ️ Tor IP unchanged: $TOR_IP"
+        # UX: Update in-place to avoid spam, skip notification
+        printf -v time_now '%(%H:%M:%S)T' -1
+        if [[ -t 1 ]]; then
+            echo -ne "\r$MSG [checked at $time_now]   "
+        else
+            echo "$MSG"
+        fi
       fi
       PREV_IP="$TOR_IP"
       append_log "$TOR_IP" "$REAL_IP" "$MSG"
     fi
 
-    echo "$MSG"
-    send_notification "$MSG"
     sleep 60
   done
 }
