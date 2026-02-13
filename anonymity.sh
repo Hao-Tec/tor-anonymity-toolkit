@@ -316,8 +316,13 @@ function monitor_loop() {
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
     else
-      REAL_IP=$(curl -s --noproxy '*' https://ident.me)
-      REAL_IP="${REAL_IP//[$'\r\n']/}"
+      # Optimization: Cache Real IP to avoid redundant API calls every loop
+      if [[ -z "$REAL_IP_CACHE" ]]; then
+        REAL_IP_CACHE=$(curl -s --noproxy '*' https://ident.me)
+        REAL_IP_CACHE="${REAL_IP_CACHE//[$'\r\n']/}"
+      fi
+      REAL_IP="$REAL_IP_CACHE"
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
       else
