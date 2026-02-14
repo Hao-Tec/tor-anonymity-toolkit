@@ -442,7 +442,14 @@ function newnym() {
     # Send commands to Tor Control Port via netcat
     # -w 5 sets a 5 second timeout
     # Use CRLF (\r\n) as per Tor Control Protocol spec
-    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+
+    # Security: Sanitize password to prevent protocol injection
+    # 1. Escape backslashes first (replace \ with \\)
+    local sanitized_pass="${AUTH_PASSWORD//\\/\\\\}"
+    # 2. Escape double quotes (replace " with \")
+    sanitized_pass="${sanitized_pass//\"/\\\"}"
+
+    output=$(printf "AUTHENTICATE \"%s\"\r\nSIGNAL NEWNYM\r\nQUIT\r\n" "$sanitized_pass" | nc -w 5 localhost $CONTROL_PORT 2>&1)
 
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
     # The output will contain multiple "250 OK" lines if successful.
