@@ -4,7 +4,6 @@
 TOR_SERVICE="tor.service"
 NEWNYM_TIMER="tor-newnym.timer"
 CONTROL_PORT=9051
-AUTH_PASSWORD="ACILAB"  # Change this to your actual control port password
 TOR_SOCKS="127.0.0.1:9050"
 
 # List of IP checking services (dynamic order)
@@ -441,8 +440,10 @@ function newnym() {
   (
     # Send commands to Tor Control Port via netcat
     # -w 5 sets a 5 second timeout
-    # Use CRLF (\r\n) as per Tor Control Protocol spec
-    output=$(echo -e "AUTHENTICATE \"$AUTH_PASSWORD\"\r\nSIGNAL NEWNYM\r\nQUIT\r" | nc -w 5 localhost $CONTROL_PORT 2>&1)
+    # Security: Sanitize password and use printf to prevent protocol injection
+    local sanitized_password="${AUTH_PASSWORD//\\/\\\\}"
+    sanitized_password="${sanitized_password//\"/\\\"}"
+    output=$(printf "AUTHENTICATE \"%s\"\r\nSIGNAL NEWNYM\r\nQUIT\r\n" "$sanitized_password" | nc -w 5 localhost $CONTROL_PORT 2>&1)
 
     # Check if we received the success code "250 OK" specifically for the SIGNAL command.
     # The output will contain multiple "250 OK" lines if successful.
