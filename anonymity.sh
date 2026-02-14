@@ -309,6 +309,7 @@ function monitor_once() {
 function monitor_loop() {
   echo -e "${CYAN}🔍 Live Tor IP Monitor. Press Ctrl+C to stop...${RESET}"
   PREV_IP=""
+  REAL_IP=""
   while true; do
     get_tor_ip 0
     TOR_IP="$FOUND_IP"
@@ -316,8 +317,17 @@ function monitor_loop() {
     if [[ -z "$TOR_IP" ]]; then
       MSG="⚠ Could not fetch Tor IP"
     else
-      REAL_IP=$(curl -s --noproxy '*' https://ident.me)
-      REAL_IP="${REAL_IP//[$'\r\n']/}"
+      # Optimization: Cache Real IP to avoid redundant API calls
+      if [[ -z "$REAL_IP" ]]; then
+        REAL_IP=$(curl -s --max-time 10 --noproxy '*' https://ident.me)
+        REAL_IP="${REAL_IP//[$'\r\n']/}"
+        # Validate IP format (IPv4 or IPv6) to ensure we don't cache errors
+        # Simple check: it should contain at least one dot (IPv4) or colon (IPv6)
+        if [[ ! "$REAL_IP" =~ [.:] ]]; then
+          REAL_IP=""
+        fi
+      fi
+
       if [[ "$TOR_IP" != "$PREV_IP" ]]; then
         MSG="✅ Tor IP changed: $TOR_IP"
       else
