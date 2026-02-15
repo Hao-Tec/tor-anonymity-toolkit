@@ -61,6 +61,17 @@ EOF
 fi
 
 echo -e "${CYAN}🔧 Loading config from $CONFIG_FILE...${RESET}"
+
+# Security: Ensure config file has restricted permissions before sourcing
+# This prevents privilege escalation if the file was created with loose permissions
+if [[ -f "$CONFIG_FILE" ]]; then
+  current_perms=$(stat -c "%a" "$CONFIG_FILE" 2>/dev/null)
+  if [[ "$current_perms" != "600" ]]; then
+    echo -e "${YELLOW}🔒 Securing config file permissions (600)...${RESET}"
+    chmod 600 "$CONFIG_FILE"
+  fi
+fi
+
 source "$CONFIG_FILE"
 
 # Runtime overrides (e.g., --debug, --theme=dark)
